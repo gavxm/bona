@@ -114,13 +114,18 @@ pub fn check(inv: &mut ModelInvestigation) {
                     parent_license,
                     license_label(parent_license),
                 ),
+                reason: "Commercial-use and redistribution rights may be revoked. \
+                         The parent license restricts usage that the declared license permits."
+                    .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{parent_license} (from {parent_id})")),
                 evidence_url: Some(format!(
                     "https://huggingface.co/{parent_id}"
                 )),
             });
         }
 
-        // Different licenses, same tier or child more restrictive - warn but lower severity.
+        // Different licenses, same tier or child more restrictive.
         (Some(_), Some(_)) => {
             inv.findings.push(Finding {
                 id: "license_mismatch".into(),
@@ -130,11 +135,16 @@ pub fn check(inv: &mut ModelInvestigation) {
                     "Declares '{}' while parent {} uses '{}'.",
                     declared_license, parent_id, parent_license,
                 ),
+                reason: "Both licenses are in the same restrictiveness tier. \
+                         Likely an attribution or compatibility issue, not a rights violation."
+                    .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{parent_license} (from {parent_id})")),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }
 
-        // One or both unclassified - can't determine, flag as info.
+        // One or both unclassified.
         _ => {
             inv.findings.push(Finding {
                 id: "license_unverifiable".into(),
@@ -145,6 +155,10 @@ pub fn check(inv: &mut ModelInvestigation) {
                      One or both licenses are not in the known license database.",
                     declared_license, parent_id, parent_license,
                 ),
+                reason: "Cannot determine if the license is compatible. Manual review recommended."
+                    .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{parent_license} (from {parent_id})")),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }
@@ -212,6 +226,7 @@ mod tests {
 
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/child".into(),
             declared: DeclaredFacts {
                 model_id: "test/child".into(),

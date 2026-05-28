@@ -164,15 +164,39 @@ fn format_date(iso: &str) -> String {
 fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
     println!();
     let logo = [
+        r"      :+#%%%%%%%%*=. .-*#%%%%%%%#*-.   .:=++++=-:",
+        r"   .+%%*-:.    .:=#@%@%+-..   ..-+#%*+%@@@@@@@@@@%*-",
+        r"  +@#:           .*@*@%:          .%@@@@@@@@@@@@@@@@%=",
+        r" #@=            :%@: .#@-        -@@@@@@:.+@@@@@@@@@@@*",
+        r"*@=             %@:    %@.      .@@@@@@@. -*==*@@@@@@@@+",
+        r"@@             :@#     =@=      +@@@@@@@. .++: .%@@@@@@@",
+        r"@@             :@#     =@=      +@@@@@@@. -@@#  *@@@@@@@",
+        r"*@=             %@:    %@.      .@@@@@@@. .==. -@@@@@@@+",
+        r" #@=            :%@: .#@-        -@@@@@@##%%**%@@@@@@@*",
+        r"  +@#:           .*@*@%:          .%@@@@@@@@@@@@@@@@%=",
+        r"   .+%%*-:.    .:=#@%@%+-..   ..-+#%*+%@@@@@@@@@@%*-",
+        r"      :+#%%%%%%%%*=. .-*#%%%%%%%#*-.   .:=++++=-:",
+    ];
+    let width = logo.iter().map(|l| l.len()).max().unwrap_or(0);
+    for line in logo {
+        println!("{}", line.color(LAVENDER).bold());
+    }
+    println!();
+    let name = [
         r"      __",
         r"     / /  ___  ___  ___ _",
         r"    / _ \/ _ \/ _ \/ _ `/",
         r"   /_.__/\___/_//_/\_,_/",
     ];
-    for line in logo {
-        println!("  {}", line.color(LAVENDER).bold());
+    let name_width = name.iter().map(|l| l.len()).max().unwrap_or(0);
+    let name_pad = (width - name_width) / 2;
+    for line in name {
+        println!("{:pad$}{}", "", line.color(LAVENDER).bold(), pad = name_pad);
     }
-    println!("  {}", "─── provenance explorer ───".dimmed());
+    let subtitle = "─── provenance explorer ───";
+    let visual_len = subtitle.chars().count();
+    let pad = (width - visual_len) / 2;
+    println!("{:pad$}{}", "", subtitle.dimmed(), pad = pad);
 
     let hf_url = format!("https://huggingface.co/{}", inv.model_id);
     let model_link = hyperlink(&hf_url, &inv.model_id);
@@ -313,6 +337,11 @@ fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
             println!("    {} {}", severity_badge(f.severity), f.title.bold());
             for line in wrap_text(&f.detail, 54) {
                 println!("           {line}");
+            }
+            if !f.reason.is_empty() {
+                for line in wrap_text(&f.reason, 54) {
+                    println!("           {}", line.dimmed());
+                }
             }
             if let Some(url) = &f.evidence_url {
                 println!(

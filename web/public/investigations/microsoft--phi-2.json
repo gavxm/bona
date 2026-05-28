@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "model_id": "microsoft/phi-2",
+  "investigated_at": "2026-05-28T11:29:53.656509+00:00",
+  "declared": {
+    "model_id": "microsoft/phi-2",
+    "declared_license": "mit",
+    "declared_base_model": null,
+    "library": "transformers",
+    "pipeline_tag": "text-generation",
+    "tags": [
+      "transformers",
+      "safetensors",
+      "phi",
+      "text-generation",
+      "nlp",
+      "code",
+      "en",
+      "license:mit",
+      "text-generation-inference",
+      "endpoints_compatible",
+      "deploy:azure",
+      "region:us"
+    ],
+    "downloads": 528880
+  },
+  "lineage": {
+    "parent_id": null,
+    "parent_license": null,
+    "parent_exists": null,
+    "siblings": []
+  },
+  "config": {
+    "architectures": [
+      "PhiForCausalLM"
+    ],
+    "model_type": "phi",
+    "hidden_size": 2560,
+    "vocab_size": 51200,
+    "num_hidden_layers": 32,
+    "safetensors_total_size": 5559367680,
+    "tokenizer_class": "CodeGenTokenizer"
+  },
+  "community": {
+    "author": "microsoft",
+    "author_created_at": null,
+    "author_model_count": null,
+    "discussion_count": 145,
+    "closed_discussion_count": 102
+  },
+  "sources": [
+    {
+      "source": "hf_metadata",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 211
+      }
+    },
+    {
+      "source": "model_tree",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 0
+      }
+    },
+    {
+      "source": "model_config",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 116
+      }
+    },
+    {
+      "source": "community_signals",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 148
+      }
+    }
+  ],
+  "findings": [
+    {
+      "id": "missing_base_model",
+      "title": "No base model declared",
+      "severity": "low",
+      "detail": "Model has weights but does not declare a base model. Lineage cannot be verified.",
+      "reason": "Without a declared parent, license inheritance cannot be checked.",
+      "actual_value": "(no base_model field)",
+      "evidence_url": "https://huggingface.co/microsoft/phi-2"
+    }
+  ]
+}

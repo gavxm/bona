@@ -24,6 +24,11 @@ pub fn check(inv: &mut ModelInvestigation) {
                     "Account '{author}' was created {age_days} days ago. \
                      New accounts uploading models warrant extra scrutiny.",
                 ),
+                reason: "New accounts are a common vector for re-uploading models \
+                         with stripped licenses or injected weights."
+                    .into(),
+                declared_value: None,
+                actual_value: Some(format!("{age_days} days old")),
                 evidence_url: Some(format!("https://huggingface.co/{author}")),
             });
         }
@@ -38,6 +43,11 @@ pub fn check(inv: &mut ModelInvestigation) {
             detail: "Model has zero discussion threads. \
                      No community review or feedback has occurred."
                 .into(),
+            reason: "Community engagement is a weak trust signal. \
+                     Absence alone is not a risk, but combined with other findings it adds context."
+                .into(),
+            declared_value: None,
+            actual_value: Some("0 discussions".into()),
             evidence_url: Some(format!(
                 "https://huggingface.co/{}/discussions",
                 inv.model_id
@@ -86,6 +96,7 @@ mod tests {
     ) -> ModelInvestigation {
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/model".into(),
             declared: DeclaredFacts {
                 model_id: "test/model".into(),

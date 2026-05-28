@@ -77,6 +77,14 @@ pub struct Finding {
     pub title: String,
     pub severity: Severity,
     pub detail: String,
+    /// Why this severity was assigned; helps users triage.
+    pub reason: String,
+    /// The declared value that triggered this finding.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub declared_value: Option<String>,
+    /// The actual/observed value that contradicts the declared value.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actual_value: Option<String>,
     /// Link to the underlying evidence on HF.
     pub evidence_url: Option<String>,
 }
@@ -104,6 +112,7 @@ pub use sources::model_tree::ModelTreeEvidence;
 pub struct ModelInvestigation {
     pub schema_version: u32,
     pub model_id: String,
+    pub investigated_at: String,
     pub declared: DeclaredFacts,
     pub lineage: Option<ModelTreeEvidence>,
     pub config: Option<ModelConfigEvidence>,
@@ -117,6 +126,7 @@ impl ModelInvestigation {
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
             model_id: model_id.to_string(),
+            investigated_at: chrono::Utc::now().to_rfc3339(),
             declared: DeclaredFacts {
                 model_id: model_id.to_string(),
                 ..Default::default()
@@ -226,6 +236,9 @@ mod tests {
             title: "low one".into(),
             severity: Severity::Low,
             detail: "".into(),
+            reason: "".into(),
+            declared_value: None,
+            actual_value: None,
             evidence_url: None,
         });
         inv.findings.push(Finding {
@@ -233,6 +246,9 @@ mod tests {
             title: "high one".into(),
             severity: Severity::High,
             detail: "".into(),
+            reason: "".into(),
+            declared_value: None,
+            actual_value: None,
             evidence_url: None,
         });
         inv.sort_findings();

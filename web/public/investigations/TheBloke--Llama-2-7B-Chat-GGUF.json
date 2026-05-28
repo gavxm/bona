@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "model_id": "TheBloke/Llama-2-7B-Chat-GGUF",
+  "investigated_at": "2026-05-28T11:29:54.029987+00:00",
+  "declared": {
+    "model_id": "TheBloke/Llama-2-7B-Chat-GGUF",
+    "declared_license": "llama2",
+    "declared_base_model": "meta-llama/Llama-2-7b-chat-hf",
+    "library": "transformers",
+    "pipeline_tag": "text-generation",
+    "tags": [
+      "transformers",
+      "gguf",
+      "llama",
+      "facebook",
+      "meta",
+      "pytorch",
+      "llama-2",
+      "text-generation",
+      "en",
+      "arxiv:2307.09288",
+      "base_model:meta-llama/Llama-2-7b-chat-hf",
+      "base_model:quantized:meta-llama/Llama-2-7b-chat-hf",
+      "license:llama2",
+      "region:us"
+    ],
+    "downloads": 60379
+  },
+  "lineage": {
+    "parent_id": "meta-llama/Llama-2-7b-chat-hf",
+    "parent_license": "llama2",
+    "parent_exists": true,
+    "siblings": [
+      "TheBloke/Llama-2-7B-Chat-GPTQ",
+      "TheBloke/Llama-2-7B-Chat-AWQ",
+      "second-state/Llama-2-7B-Chat-GGUF",
+      "SergeUSS/Llama-2-7B-Chat-GGUF",
+      "mlc-ai/Llama-2-7b-chat-hf-q4f16_1-MLC"
+    ]
+  },
+  "config": {
+    "architectures": [],
+    "model_type": "llama",
+    "hidden_size": null,
+    "vocab_size": null,
+    "num_hidden_layers": null,
+    "safetensors_total_size": null,
+    "tokenizer_class": null
+  },
+  "community": {
+    "author": "TheBloke",
+    "author_created_at": "2023-03-31T12:37:07.000Z",
+    "author_model_count": 3863,
+    "discussion_count": 37,
+    "closed_discussion_count": 1
+  },
+  "sources": [
+    {
+      "source": "hf_metadata",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 106
+      }
+    },
+    {
+      "source": "model_tree",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 108
+      }
+    },
+    {
+      "source": "model_config",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 209
+      }
+    },
+    {
+      "source": "community_signals",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 196
+      }
+    }
+  ],
+  "findings": [
+    {
+      "id": "gated_derivative",
+      "title": "Derivative of a gated model is publicly accessible",
+      "severity": "medium",
+      "detail": "Parent model 'meta-llama/Llama-2-7b-chat-hf' uses 'llama2', which is typically distributed with access controls (gating). This derivative is publicly accessible without gating.",
+      "reason": "Gated models have access controls for legal or safety reasons. A public derivative may bypass those restrictions.",
+      "declared_value": "llama2 (gated)",
+      "actual_value": "public access (no gate)",
+      "evidence_url": "https://huggingface.co/meta-llama/Llama-2-7b-chat-hf"
+    }
+  ]
+}

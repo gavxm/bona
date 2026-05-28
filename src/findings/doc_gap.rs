@@ -12,12 +12,16 @@ pub fn check(inv: &mut ModelInvestigation) {
             detail: "Model has no license in its card metadata. \
                      Users cannot determine usage rights."
                 .into(),
+            reason: "Absence of a license is legally ambiguous. \
+                     Default copyright applies, which restricts all use."
+                .into(),
+            declared_value: None,
+            actual_value: Some("(no license field)".into()),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
         });
     }
 
     if d.declared_base_model.is_none() && inv.config.is_some() {
-        // Only flag this if we have config data (if the model has weights).
         inv.findings.push(Finding {
             id: "missing_base_model".into(),
             title: "No base model declared".into(),
@@ -25,6 +29,9 @@ pub fn check(inv: &mut ModelInvestigation) {
             detail: "Model has weights but does not declare a base model. \
                      Lineage cannot be verified."
                 .into(),
+            reason: "Without a declared parent, license inheritance cannot be checked.".into(),
+            declared_value: None,
+            actual_value: Some("(no base_model field)".into()),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
         });
     }
@@ -70,6 +77,7 @@ mod tests {
     fn make_inv(license: Option<&str>, base_model: Option<&str>) -> ModelInvestigation {
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/model".into(),
             declared: DeclaredFacts {
                 model_id: "test/model".into(),

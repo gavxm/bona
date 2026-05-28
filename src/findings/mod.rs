@@ -1,4 +1,5 @@
 mod doc_gap;
+mod gated;
 mod license;
 mod lineage;
 mod metadata;
@@ -10,6 +11,7 @@ use crate::ModelInvestigation;
 pub fn compute(inv: &mut ModelInvestigation) {
     license::check(inv);
     lineage::check(inv);
+    gated::check(inv);
     doc_gap::check(inv);
     trust::check(inv);
     metadata::check(inv);
