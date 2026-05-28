@@ -16,15 +16,20 @@ export function ModelNode({ data }: NodeProps) {
   return (
     <div
       className={clsx(
-        "px-2.5 py-1.5 rounded border text-center transition-all duration-150 cursor-pointer",
-        d.isSubject
-          ? "border-accent bg-bg-raised shadow-[0_0_8px_rgba(180,160,230,0.3)]"
-          : "border-text-muted/60 bg-bg-raised hover:border-text-secondary",
+        "rounded border text-center cursor-pointer",
+        "transition-all duration-300 ease-in-out",
+        d.highlighted
+          ? "px-3 py-2 border-accent shadow-[0_0_16px_rgba(180,160,230,0.6)] scale-105 bg-bg-raised"
+          : d.isSubject
+            ? "px-2.5 py-1.5 border-accent bg-bg-raised shadow-[0_0_8px_rgba(180,160,230,0.3)]"
+            : "px-2.5 py-1.5 border-text-muted/60 bg-bg-raised hover:border-text-secondary",
         d.exists === false && "border-dashed border-severity-high/50",
-        d.highlighted && "border-accent shadow-[0_0_12px_rgba(180,160,230,0.5)]"
       )}
     >
-      <div className="text-[11px] font-mono text-text-primary truncate max-w-35">
+      <div className={clsx(
+        "font-mono text-text-primary truncate max-w-35",
+        d.highlighted ? "text-xs font-semibold" : "text-[11px]"
+      )}>
         {shortId}
       </div>
       <div className="text-[9px] text-text-secondary truncate max-w-35">{d.modelId}</div>

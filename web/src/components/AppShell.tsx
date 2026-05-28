@@ -1,4 +1,5 @@
 import { TopBar } from "./TopBar";
+import { SummaryStrip } from "./SummaryStrip";
 import { LineageGraph } from "./left/LineageGraph";
 import { CenterPanel } from "./center/CenterPanel";
 import { RightPanel } from "./right/RightPanel";
@@ -29,11 +30,14 @@ export function AppShell() {
         </div>
       )}
       {!loading && !error && investigation && (
-        <div className="flex-1 grid grid-cols-[280px_1fr_340px] min-h-0">
-          <LineageGraph />
-          <CenterPanel />
-          <RightPanel />
-        </div>
+        <>
+          <SummaryStrip />
+          <div className="flex-1 grid grid-cols-[280px_1fr_340px] min-h-0">
+            <LineageGraph />
+            <CenterPanel />
+            <RightPanel />
+          </div>
+        </>
       )}
     </div>
   );
