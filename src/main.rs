@@ -65,11 +65,17 @@ fn print_text_report(inv: &ModelInvestigation) {
     println!("\nDeclared facts:");
     println!(
         "  license:     {}",
-        inv.declared.declared_license.as_deref().unwrap_or("(none declared)")
+        inv.declared
+            .declared_license
+            .as_deref()
+            .unwrap_or("(none declared)")
     );
     println!(
         "  base model:  {}",
-        inv.declared.declared_base_model.as_deref().unwrap_or("(none declared)")
+        inv.declared
+            .declared_base_model
+            .as_deref()
+            .unwrap_or("(none declared)")
     );
     println!(
         "  library:     {}",

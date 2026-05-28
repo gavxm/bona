@@ -51,8 +51,12 @@ pub enum EvidenceSource {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum SourceStatus {
-    Ok { fetched_ms: u64 },
-    Failed { reason: String },
+    Ok {
+        fetched_ms: u64,
+    },
+    Failed {
+        reason: String,
+    },
     /// Not yet implemented.
     NotImplemented,
 }
@@ -126,8 +130,7 @@ impl ModelInvestigation {
 
     /// Sort findings high-severity first.
     pub fn sort_findings(&mut self) {
-        self.findings
-            .sort_by_key(|f| std::cmp::Reverse(f.severity));
+        self.findings.sort_by_key(|f| std::cmp::Reverse(f.severity));
     }
 }
 
