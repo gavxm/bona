@@ -29,6 +29,7 @@ anyhow = "1"
 thiserror = "2"
 chrono = { version = "0.4.44", features = ["serde"] }
 owo-colors = "4.3.0"
+indicatif = "0.18.4"
 
 [dev-dependencies]
 insta = { version = "1.47.2", features = ["json"] }
