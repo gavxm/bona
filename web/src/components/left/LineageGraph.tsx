@@ -78,7 +78,7 @@ function LineageGraphInner() {
         nodes.push({
           id: sib,
           type: "sibling",
-          position: { x: 60, y: y + i * 40 },
+          position: { x: 60, y: y + i * 50 },
           data: { modelId: sib },
         });
 
@@ -133,7 +133,7 @@ function LineageGraphInner() {
           className="text-[10px] text-text-muted hover:text-text-secondary cursor-pointer px-1.5 py-0.5 rounded border border-border hover:border-text-muted transition-colors"
           title="Reset"
         >
-          ⟲
+          Reset
         </button>
       </div>
       <div className="h-[calc(100%-40px)]">

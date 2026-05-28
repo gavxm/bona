@@ -19,7 +19,7 @@ export function ModelNode({ data }: NodeProps) {
         "px-2.5 py-1.5 rounded border text-center transition-all duration-150 cursor-pointer",
         d.isSubject
           ? "border-accent bg-bg-raised shadow-[0_0_8px_rgba(180,160,230,0.3)]"
-          : "border-border bg-bg-surface hover:border-text-muted",
+          : "border-text-muted/60 bg-bg-raised hover:border-text-secondary",
         d.exists === false && "border-dashed border-severity-high/50",
         d.highlighted && "border-accent shadow-[0_0_12px_rgba(180,160,230,0.5)]"
       )}
@@ -27,9 +27,9 @@ export function ModelNode({ data }: NodeProps) {
       <div className="text-[11px] font-mono text-text-primary truncate max-w-35">
         {shortId}
       </div>
-      <div className="text-[9px] text-text-muted truncate max-w-35">{d.modelId}</div>
+      <div className="text-[9px] text-text-secondary truncate max-w-35">{d.modelId}</div>
       {d.license && (
-        <span className="inline-block mt-0.5 px-1 py-0 text-[9px] rounded bg-bg-base text-text-secondary border border-border">
+        <span className="inline-block mt-0.5 px-1 py-0 text-[9px] rounded bg-bg-base text-text-primary border border-text-muted/40">
           {d.license}
         </span>
       )}

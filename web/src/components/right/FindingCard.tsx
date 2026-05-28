@@ -13,18 +13,16 @@ export function FindingCard({ finding }: { finding: Finding }) {
       className={clsx(
         "w-full text-left px-4 py-3 border-l-3 transition-all duration-150 cursor-pointer",
         "hover:bg-bg-raised",
-        isSelected
-          ? "border-l-accent bg-bg-raised"
-          : "border-l-transparent"
+        isSelected ? "border-l-accent bg-bg-raised" : "border-l-transparent"
       )}
     >
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2">
         <SeverityBadge severity={finding.severity} />
-        <span className="text-sm font-medium text-text-primary truncate">
+        <span className="text-[13px] font-semibold text-text-primary truncate">
           {finding.title}
         </span>
       </div>
-      <p className="text-xs text-text-secondary leading-relaxed">
+      <p className="text-[11px] text-text-muted leading-relaxed mt-2 pl-0.5">
         {finding.detail}
       </p>
       {finding.evidence_url && (
@@ -33,7 +31,7 @@ export function FindingCard({ finding }: { finding: Finding }) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-xs text-accent hover:underline mt-1 inline-block"
+          className="text-[11px] text-accent hover:underline mt-1.5 inline-block pl-0.5"
         >
           evidence ↗
         </a>
