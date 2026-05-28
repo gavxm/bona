@@ -10,7 +10,7 @@ export function SiblingNode({ data }: NodeProps<SiblingNodeType>) {
   const shortId = data.modelId.split("/").pop() ?? data.modelId;
 
   return (
-    <div className="px-2 py-1 rounded border border-text-muted/40 bg-bg-raised text-center cursor-pointer hover:border-text-secondary transition-colors">
+    <div title={data.modelId} className="px-2 py-1 rounded border border-text-muted/40 bg-bg-raised text-center cursor-pointer hover:border-text-secondary transition-colors">
       <div className="text-[10px] font-mono text-text-secondary truncate max-w-30">
         {shortId} ↗
       </div>

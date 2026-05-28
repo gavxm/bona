@@ -10,6 +10,7 @@ import {
   BackgroundVariant,
 } from "@xyflow/react";
 import { useInvestigation } from "../../context/useInvestigation";
+import { FINDING_LINKS } from "../../linking";
 import { ModelNode, type ModelNodeData } from "./ModelNode";
 import { SiblingNode } from "./SiblingNode";
 
@@ -31,8 +32,29 @@ function LineageGraphInner() {
     const lineage = investigation.lineage;
     let y = 20;
 
+    // Compute which graph roles have findings.
+    const nodeFindings = new Map<string, { high: boolean; medium: boolean }>();
+    for (const f of investigation.findings) {
+      const link = FINDING_LINKS[f.id];
+      if (!link) continue;
+      for (const role of link.graphNodes) {
+        const id =
+          role === "subject"
+            ? investigation.model_id
+            : role === "parent" && lineage?.parent_id
+              ? lineage.parent_id
+              : null;
+        if (!id) continue;
+        const existing = nodeFindings.get(id) ?? { high: false, medium: false };
+        if (f.severity === "high") existing.high = true;
+        if (f.severity === "medium") existing.medium = true;
+        nodeFindings.set(id, existing);
+      }
+    }
+
     // Parent node
     if (lineage?.parent_id) {
+      const pf = nodeFindings.get(lineage.parent_id);
       nodes.push({
         id: lineage.parent_id,
         type: "model",
@@ -43,6 +65,8 @@ function LineageGraphInner() {
           exists: lineage.parent_exists,
           isSubject: false,
           highlighted: highlightedGraphNodes.includes(lineage.parent_id),
+          hasHighFinding: pf?.high ?? false,
+          hasMediumFinding: pf?.medium ?? false,
         } satisfies ModelNodeData,
       });
 
@@ -58,6 +82,7 @@ function LineageGraphInner() {
     }
 
     // Subject node
+    const sf = nodeFindings.get(investigation.model_id);
     nodes.push({
       id: investigation.model_id,
       type: "model",
@@ -67,6 +92,8 @@ function LineageGraphInner() {
         license: investigation.declared.declared_license,
         isSubject: true,
         highlighted: highlightedGraphNodes.includes(investigation.model_id),
+        hasHighFinding: sf?.high ?? false,
+        hasMediumFinding: sf?.medium ?? false,
       } satisfies ModelNodeData,
     });
 

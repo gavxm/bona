@@ -7,6 +7,8 @@ export type ModelNodeData = {
   isSubject?: boolean;
   exists?: boolean | null;
   highlighted?: boolean;
+  hasHighFinding?: boolean;
+  hasMediumFinding?: boolean;
 };
 
 export type ModelNodeType = Node<ModelNodeData, "model">;
@@ -14,16 +16,36 @@ export type ModelNodeType = Node<ModelNodeData, "model">;
 export function ModelNode({ data }: NodeProps<ModelNodeType>) {
   const shortId = data.modelId.split("/").pop() ?? data.modelId;
 
+  // Priority: highlighted glow > finding glow > subject glow > default
+  const shadow = data.highlighted
+    ? "shadow-[0_0_16px_rgba(180,160,230,0.6)]"
+    : data.hasHighFinding
+      ? "shadow-[0_0_10px_rgba(218,54,51,0.5)]"
+      : data.hasMediumFinding
+        ? "shadow-[0_0_10px_rgba(210,153,34,0.4)]"
+        : data.isSubject
+          ? "shadow-[0_0_8px_rgba(180,160,230,0.3)]"
+          : "";
+
+  const border = data.highlighted
+    ? "border-accent"
+    : data.hasHighFinding
+      ? "border-severity-high hover:border-severity-high hover:brightness-125"
+      : data.hasMediumFinding
+        ? "border-severity-medium hover:border-severity-medium hover:brightness-125"
+        : data.isSubject
+          ? "border-accent hover:brightness-125"
+          : "border-text-muted/60 hover:border-text-secondary";
+
   return (
     <div
+      title={data.modelId}
       className={clsx(
-        "rounded border text-center cursor-pointer",
+        "rounded border text-center cursor-pointer bg-bg-raised",
         "transition-all duration-300 ease-in-out",
-        data.highlighted
-          ? "px-3 py-2 border-accent shadow-[0_0_16px_rgba(180,160,230,0.6)] scale-105 bg-bg-raised"
-          : data.isSubject
-            ? "px-2.5 py-1.5 border-accent bg-bg-raised shadow-[0_0_8px_rgba(180,160,230,0.3)]"
-            : "px-2.5 py-1.5 border-text-muted/60 bg-bg-raised hover:border-text-secondary",
+        shadow,
+        border,
+        data.highlighted ? "px-3 py-2 scale-105" : "px-2.5 py-1.5",
         data.exists === false && "border-dashed border-severity-high/50",
       )}
     >
