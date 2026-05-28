@@ -102,10 +102,7 @@ pub async fn fetch(client: &reqwest::Client, model_id: &str) -> FetchResult {
             Ok(None) => "config.json not found".to_string(),
             Ok(Some(_)) => unreachable!(),
         };
-        FetchResult::failed(
-            EvidenceSource::ModelConfig,
-            BonaError::Parse(reason),
-        )
+        FetchResult::failed(EvidenceSource::ModelConfig, BonaError::Parse(reason))
     }
 }
 
@@ -137,9 +134,8 @@ async fn fetch_safetensors_index(
     client: &reqwest::Client,
     model_id: &str,
 ) -> Result<Option<u64>, BonaError> {
-    let url = format!(
-        "https://huggingface.co/{model_id}/resolve/main/model.safetensors.index.json"
-    );
+    let url =
+        format!("https://huggingface.co/{model_id}/resolve/main/model.safetensors.index.json");
     let resp = client.get(&url).send().await?;
 
     if resp.status() == reqwest::StatusCode::NOT_FOUND
@@ -162,9 +158,7 @@ async fn fetch_tokenizer_config(
     client: &reqwest::Client,
     model_id: &str,
 ) -> Result<Option<String>, BonaError> {
-    let url = format!(
-        "https://huggingface.co/{model_id}/resolve/main/tokenizer_config.json"
-    );
+    let url = format!("https://huggingface.co/{model_id}/resolve/main/tokenizer_config.json");
     let resp = client.get(&url).send().await?;
 
     if resp.status() == reqwest::StatusCode::NOT_FOUND
