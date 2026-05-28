@@ -54,14 +54,21 @@ fn family_from_model_id(model_id: &str) -> Option<&'static str> {
 
 /// Check for lineage inconsistency: declared base model vs actual architecture.
 pub fn check(inv: &mut ModelInvestigation) {
-    let parent_id = match inv.lineage.as_ref().and_then(|l| l.parent_id.as_deref()) {
+    let lineage = match &inv.lineage {
+        Some(l) => l,
+        None => return,
+    };
+
+    let parent_id = match lineage.parent_id.as_deref() {
         Some(id) => id,
         None => return,
     };
 
+    let parent_exists = lineage.parent_exists;
+
     let model_type = match inv.config.as_ref().and_then(|c| c.model_type.as_deref()) {
         Some(mt) => mt,
-        None => return, // No config data - can't cross-reference.
+        None => return, // No config data — can't cross-reference.
     };
 
     let config_family = architecture_family(model_type);
@@ -69,13 +76,18 @@ pub fn check(inv: &mut ModelInvestigation) {
 
     match (config_family, parent_family) {
         (Some(cf), Some(pf)) if cf != pf => {
+            let exists_note = if parent_exists == Some(false) {
+                " (parent model not found on HuggingFace)"
+            } else {
+                ""
+            };
             inv.findings.push(Finding {
                 id: "lineage_inconsistency".into(),
                 title: "Lineage inconsistency".into(),
                 severity: Severity::High,
                 detail: format!(
                     "Declares base model '{}' ({} family) but config.json shows \
-                     model_type '{}' ({} family).",
+                     model_type '{}' ({} family).{exists_note}",
                     parent_id, pf, model_type, cf,
                 ),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),

@@ -158,4 +158,15 @@ async fn investigate_populates_all_sources() {
             source.status
         );
     }
+
+    // Findings: mit child with apache-2.0 parent should produce a license_mismatch.
+    let license_finding = inv
+        .findings
+        .iter()
+        .find(|f| f.id == "license_mismatch");
+    assert!(
+        license_finding.is_some(),
+        "expected license_mismatch finding, got: {:?}",
+        inv.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+    );
 }

@@ -21,12 +21,11 @@ fn classify(license: &str) -> Option<Restrictiveness> {
     match l.as_str() {
         // Permissive.
         "mit" | "apache-2.0" | "bsd-2-clause" | "bsd-3-clause" | "isc" | "unlicense"
-        | "cc0-1.0" | "wtfpl" | "zlib" | "0bsd" => Some(Restrictiveness::Permissive),
+        | "cc0-1.0" | "cc-by-4.0" | "wtfpl" | "zlib" | "0bsd" => Some(Restrictiveness::Permissive),
 
         // Weak copyleft.
-        "lgpl-2.1" | "lgpl-3.0" | "mpl-2.0" | "osl-3.0" | "eupl-1.2" => {
-            Some(Restrictiveness::WeakCopyleft)
-        }
+        "lgpl-2.1" | "lgpl-3.0" | "mpl-2.0" | "osl-3.0" | "eupl-1.2" | "cc-by-sa-4.0"
+        | "cc-by-sa-3.0" => Some(Restrictiveness::WeakCopyleft),
 
         // Strong copyleft.
         "gpl-2.0" | "gpl-3.0" | "agpl-3.0" => Some(Restrictiveness::StrongCopyleft),
@@ -41,15 +40,14 @@ fn classify(license: &str) -> Option<Restrictiveness> {
         | "bigscience-bloom-rail-1.0"
         | "creativeml-openrail-m" => Some(Restrictiveness::NonCommercial),
 
+        // Custom restricted.
+        "gemma" => Some(Restrictiveness::CustomRestricted),
+
         _ => None,
     }
     .or_else(|| {
         // Pattern matches for families.
-        if l.starts_with("llama")
-            || l.starts_with("meta-llama")
-            || l == "gemma"
-            || l.starts_with("google-")
-        {
+        if l.starts_with("llama") || l.starts_with("meta-llama") {
             Some(Restrictiveness::CustomRestricted)
         } else if l.starts_with("cc-by-nc") {
             Some(Restrictiveness::NonCommercial)
@@ -137,7 +135,7 @@ pub fn check(inv: &mut ModelInvestigation) {
         }
 
         // One or both unclassified - can't determine, flag as info.
-        _ if child_class.is_none() || parent_class.is_none() => {
+        _ => {
             inv.findings.push(Finding {
                 id: "license_unverifiable".into(),
                 title: "License inheritance could not be verified".into(),
@@ -150,7 +148,6 @@ pub fn check(inv: &mut ModelInvestigation) {
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }
-        _ => {}
     }
 }
 
