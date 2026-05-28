@@ -74,7 +74,7 @@ function LineageGraphInner() {
         id: `${lineage.parent_id}->${investigation.model_id}`,
         source: lineage.parent_id,
         target: investigation.model_id,
-        style: { stroke: "#484f58" },
+        style: { stroke: "#8b949e", strokeWidth: 1.5 },
         animated: highlightedGraphNodes.includes(lineage.parent_id),
       });
 
@@ -114,7 +114,7 @@ function LineageGraphInner() {
             id: `${lineage.parent_id}->${sib}`,
             source: lineage.parent_id,
             target: sib,
-            style: { stroke: "#30363d" },
+            style: { stroke: "#6e7681" },
           });
         }
       });

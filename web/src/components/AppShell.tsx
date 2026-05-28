@@ -24,8 +24,8 @@ export function AppShell() {
       {!loading && !error && !investigation && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <img src="/logo-dark.svg" alt="bona" className="h-10 w-auto mx-auto mb-3 opacity-60" />
-            <p className="text-text-secondary text-sm">select a model to investigate</p>
+            <img src="/logo-dark.svg" alt="bona" className="h-54 w-auto mx-auto opacity-60" />
+            <p className="text-text-secondary text-lg">select a model to investigate</p>
           </div>
         </div>
       )}
