@@ -68,7 +68,7 @@ pub fn check(inv: &mut ModelInvestigation) {
 
     let model_type = match inv.config.as_ref().and_then(|c| c.model_type.as_deref()) {
         Some(mt) => mt,
-        None => return, // No config data — can't cross-reference.
+        None => return, // No config data - can't cross-reference.
     };
 
     let config_family = architecture_family(model_type);
