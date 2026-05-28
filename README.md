@@ -2,31 +2,32 @@
 
 > Know where your models came from.
 
-Bona investigates the provenance of an AI model. Point it at a HuggingFace
-model id and it traces the model's lineage, license inheritance, and trust
-signals, then flags the places where what the model *claims* doesn't match
-what the evidence actually shows.
+Bona investigates the provenance of HuggingFace models. It traces lineage,
+cross-references licenses, and flags the gaps between what a model *claims*
+and what the evidence actually shows.
 
-**Status:** early development, v1 in progress.
+Most tools show you metadata. Bona shows you where the metadata contradicts
+itself.
 
-## Why this exists
+![bona web UI](docs/UI.png)
 
-What's missing in existing tools: a way to actually
-*investigate* a single model and answer the question you really have, which is
-"where did this thing come from, and should I trust it?"
+**[Live demo](https://gavxm.github.io/bona)** · **[Install](#install)**
 
-That's what Bona is. The gaps and contradictions between a model's claims and
-its evidence aren't buried in a log somewhere, they're the findings.
+## Findings
 
-## What it catches
+- **License inheritance violations**: Apache-2.0 declared on a Llama
+  derivative that's actually governed by Meta's Community License
+- **Lineage inconsistencies**: declared base model doesn't match the
+  architecture in config.json
+- **Gated-derivative detection**: public models derived from gated parents,
+  bypassing access controls
+- **Documentation gaps**: missing license or base model declarations
+- **Trust signals**: new uploader accounts, zero community engagement
+- **Metadata anomalies**: weight sizes that don't match the declared
+  architecture
 
-- **Lineage inconsistencies**: a declared base model that doesn't match the
-  actual architecture
-- **License inheritance violations**: for example, an MIT license slapped on
-  a Llama derivative that's actually governed by Meta's Community License
-- **Documentation gaps, trust signals, and metadata anomalies**: missing
-  training-data info, brand-new uploader accounts, parameter counts that don't
-  add up
+Each finding includes a severity, a reason explaining *why* it matters, and
+the raw declared-vs-actual values that triggered it.
 
 ## Install
 
@@ -37,11 +38,61 @@ cargo install bona
 ## Usage
 
 ```sh
-# Human-readable report
+# investigate a model
 bona investigate meta-llama/Llama-3.1-8B-Instruct
 
-# Full investigation document as JSON
-bona investigate meta-llama/Llama-3.1-8B-Instruct --json
+# JSON output
+bona investigate ruslanmv/Medical-Llama3-8B --json
+
+# fail CI on high-severity findings
+bona investigate some/model --fail-on-high
+```
+
+Set `HF_TOKEN` to access gated models:
+
+```sh
+export HF_TOKEN=hf_...
+
+bona investigate meta-llama/Llama-3.1-8B-Instruct
+```
+
+## Web Explorer
+
+Three-panel investigation UI: lineage graph, tabbed evidence details, and
+findings with declared-vs-actual diffs. Click a finding to highlight the
+related evidence across all panels.
+
+**[gavxm.github.io/bona](https://gavxm.github.io/bona)**
+
+Run locally:
+
+```sh
+cd web && npm install && npm run dev
+```
+
+## How It Works
+
+Bona fetches evidence from four HuggingFace sources concurrently, then runs
+cross-referenced checks across them:
+
+| Source                    | What it provides                          |
+| ------------------------- | ----------------------------------------- |
+| HF metadata               | license, base model, tags, downloads      |
+| Model tree                | parent model's license, sibling models    |
+| config.json + safetensors | architecture, parameters, weight size     |
+| Community signals         | uploader account age, discussion activity |
+
+The key insight is **gap-as-signal**: contradictions between sources are the
+findings, not incidental noise.
+
+## Architecture
+
+```text
+src/lib.rs       :engine library
+src/main.rs      :CLI
+src/sources/     :evidence fetchers
+src/findings/    :cross-referenced checks
+web/             :React + Vite + Tailwind
 ```
 
 ## License
