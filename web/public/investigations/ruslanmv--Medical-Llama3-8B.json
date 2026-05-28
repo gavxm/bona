@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "model_id": "ruslanmv/Medical-Llama3-8B",
+  "declared": {
+    "model_id": "ruslanmv/Medical-Llama3-8B",
+    "declared_license": "apache-2.0",
+    "declared_base_model": "meta-llama/Meta-Llama-3-8B",
+    "library": "transformers",
+    "pipeline_tag": "text-generation",
+    "tags": [
+      "transformers",
+      "pytorch",
+      "safetensors",
+      "llama",
+      "text-generation",
+      "text-generation-inference",
+      "ruslanmv",
+      "trl",
+      "llama-3",
+      "instruct",
+      "finetune",
+      "chatml",
+      "DPO",
+      "RLHF",
+      "gpt4",
+      "distillation",
+      "heathcare",
+      "medical",
+      "clinical",
+      "med",
+      "lifescience",
+      "Pharmaceutical",
+      "Pharma",
+      "en",
+      "dataset:ruslanmv/ai-medical-chatbot",
+      "base_model:meta-llama/Meta-Llama-3-8B",
+      "base_model:finetune:meta-llama/Meta-Llama-3-8B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "deploy:azure",
+      "region:us"
+    ],
+    "downloads": 953
+  },
+  "lineage": {
+    "parent_id": "meta-llama/Meta-Llama-3-8B",
+    "parent_license": "llama3",
+    "parent_exists": true,
+    "siblings": [
+      "aaditya/Llama3-OpenBioLLM-8B",
+      "unsloth/llama-3-8b-bnb-4bit",
+      "DeepMount00/Llama-3-8b-Ita",
+      "MLP-KTLim/llama-3-Korean-Bllossom-8B",
+      "openchat/openchat-3.6-8b-20240522"
+    ]
+  },
+  "config": {
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "model_type": "llama",
+    "hidden_size": 4096,
+    "vocab_size": 128256,
+    "num_hidden_layers": 32,
+    "safetensors_total_size": 16060522496,
+    "tokenizer_class": "PreTrainedTokenizerFast"
+  },
+  "community": {
+    "author": "ruslanmv",
+    "author_created_at": "2021-08-21T13:40:22.000Z",
+    "author_model_count": 29,
+    "discussion_count": 2,
+    "closed_discussion_count": 0
+  },
+  "sources": [
+    {
+      "source": "hf_metadata",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 136
+      }
+    },
+    {
+      "source": "model_tree",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 117
+      }
+    },
+    {
+      "source": "model_config",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 142
+      }
+    },
+    {
+      "source": "community_signals",
+      "status": {
+        "status": "ok",
+        "fetched_ms": 150
+      }
+    }
+  ],
+  "findings": [
+    {
+      "id": "license_inheritance_violation",
+      "title": "License inheritance violation",
+      "severity": "high",
+      "detail": "Declares 'apache-2.0' but parent meta-llama/Meta-Llama-3-8B uses 'llama3' (Meta Community License). A derivative cannot grant more permissive rights than the original license allows.",
+      "evidence_url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
+    }
+  ]
+}
