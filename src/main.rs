@@ -47,16 +47,16 @@ enum Command {
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    // Respect NO_COLOR env var and detect TTY.
+    if std::env::var_os("NO_COLOR").is_some() {
+        owo_colors::set_override(false);
+    }
+
     let cli = Cli::parse();
 
     match cli.command {
         Command::Completions { shell } => {
-            clap_complete::generate(
-                shell,
-                &mut Cli::command(),
-                "bona",
-                &mut std::io::stdout(),
-            );
+            clap_complete::generate(shell, &mut Cli::command(), "bona", &mut std::io::stdout());
             return ExitCode::SUCCESS;
         }
         Command::Investigate { model_id, json } => {
@@ -68,14 +68,15 @@ async fn main() -> ExitCode {
                 return ExitCode::FAILURE;
             }
 
-            let spinner = ProgressBar::new_spinner();
+            let spinner =
+                ProgressBar::with_draw_target(None, indicatif::ProgressDrawTarget::stderr());
             spinner.set_style(
                 ProgressStyle::default_spinner()
                     .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
                     .template("{spinner} {msg}")
                     .unwrap(),
             );
-            spinner.set_message(format!("Investigating {}...", model_id));
+            spinner.set_message(format!("investigating {}...", model_id));
             spinner.enable_steady_tick(std::time::Duration::from_millis(80));
 
             let start = Instant::now();
@@ -91,10 +92,7 @@ async fn main() -> ExitCode {
                     } else {
                         print_text_report(&inv, elapsed);
                     }
-                    let has_high = inv
-                        .findings
-                        .iter()
-                        .any(|f| f.severity == Severity::High);
+                    let has_high = inv.findings.iter().any(|f| f.severity == Severity::High);
                     if has_high {
                         ExitCode::from(1)
                     } else {
@@ -242,7 +240,10 @@ fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
             label("parent", "(none declared)");
         }
         if !lineage.siblings.is_empty() {
-            label("siblings", &format!("· {}", lineage.siblings[0]).dimmed().to_string());
+            label(
+                "siblings",
+                &format!("· {}", lineage.siblings[0]).dimmed().to_string(),
+            );
             for sib in &lineage.siblings[1..] {
                 println!("  {:<16} {}", "", format!("· {sib}").dimmed());
             }
@@ -317,6 +318,22 @@ fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
         println!();
         print_summary(inv);
     }
+
+    // Evidence sources.
+    println!();
+    let source_parts: Vec<String> = inv
+        .sources
+        .iter()
+        .map(|rec| {
+            let name = format!("{:?}", rec.source);
+            match &rec.status {
+                bona::SourceStatus::Ok { fetched_ms } => format!("{name} {fetched_ms}ms"),
+                bona::SourceStatus::Failed { .. } => format!("{name} ✗"),
+                bona::SourceStatus::NotImplemented => format!("{name} n/a"),
+            }
+        })
+        .collect();
+    println!("  {}", source_parts.join(" · ").dimmed());
     println!();
 }
 

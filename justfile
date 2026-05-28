@@ -23,7 +23,7 @@ deny:
 
 # Investigate a model (ex. `just inv meta-llama/Llama-3.1-8B-Instruct`).
 inv model_id:
-    -cargo build --quiet && ./target/debug/bona investigate {{model_id}}
+    cargo build --quiet && ./target/debug/bona investigate {{model_id}} || true
 
 # Investigate a model and output JSON.
 inv-json model_id:
