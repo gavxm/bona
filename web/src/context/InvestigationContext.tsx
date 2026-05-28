@@ -57,7 +57,8 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
 
     try {
       const filename = modelId.replace("/", "--");
-      const resp = await fetch(`/investigations/${filename}.json`);
+      const base = import.meta.env.BASE_URL;
+      const resp = await fetch(`${base}investigations/${filename}.json`);
       if (!resp.ok) throw new Error(`Failed to load investigation for ${modelId}`);
       const data = await resp.json();
       setInvestigation(data);
