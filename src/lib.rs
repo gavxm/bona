@@ -2,7 +2,10 @@
 //! [`ModelInvestigation`] is the stable contract - treat changes to it as
 //! API changes.
 
+mod sources;
+
 use serde::{Deserialize, Serialize};
+use sources::Evidence;
 
 /// Engine errors.
 #[derive(Debug, thiserror::Error)]
@@ -86,6 +89,10 @@ pub struct DeclaredFacts {
     pub downloads: Option<u64>,
 }
 
+pub use sources::community::CommunityEvidence;
+pub use sources::model_config::ModelConfigEvidence;
+pub use sources::model_tree::ModelTreeEvidence;
+
 /// The investigation document. CLI prints it, web UI renders it, gallery
 /// caches it as JSON.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +100,9 @@ pub struct ModelInvestigation {
     pub schema_version: u32,
     pub model_id: String,
     pub declared: DeclaredFacts,
+    pub lineage: Option<ModelTreeEvidence>,
+    pub config: Option<ModelConfigEvidence>,
+    pub community: Option<CommunityEvidence>,
     pub sources: Vec<SourceRecord>,
     pub findings: Vec<Finding>,
 }
@@ -106,6 +116,9 @@ impl ModelInvestigation {
                 model_id: model_id.to_string(),
                 ..Default::default()
             },
+            lineage: None,
+            config: None,
+            community: None,
             sources: Vec::new(),
             findings: Vec::new(),
         }
@@ -118,88 +131,6 @@ impl ModelInvestigation {
     }
 }
 
-/// Subset of the HF `/api/models/{id}` response we actually use.
-#[derive(Debug, Deserialize)]
-struct HfModelInfo {
-    #[serde(default)]
-    license: Option<String>,
-    #[serde(default)]
-    library_name: Option<String>,
-    #[serde(default)]
-    pipeline_tag: Option<String>,
-    #[serde(default)]
-    tags: Vec<String>,
-    #[serde(default)]
-    downloads: Option<u64>,
-    /// Free-form card metadata. Base model lives in here (string or list).
-    #[serde(rename = "cardData", default)]
-    card_data: Option<serde_json::Value>,
-}
-
-/// Pull `base_model` out of cardData. May be a string or list of strings.
-fn extract_base_model(card_data: &Option<serde_json::Value>) -> Option<String> {
-    let cd = card_data.as_ref()?;
-    let bm = cd.get("base_model")?;
-    match bm {
-        serde_json::Value::String(s) => Some(s.clone()),
-        serde_json::Value::Array(arr) => arr
-            .first()
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
-        _ => None,
-    }
-}
-
-/// Fetch HF API metadata.
-async fn fetch_hf_metadata(
-    client: &reqwest::Client,
-    model_id: &str,
-    inv: &mut ModelInvestigation,
-) {
-    let start = std::time::Instant::now();
-    let url = format!("https://huggingface.co/api/models/{model_id}");
-
-    let result: Result<HfModelInfo, BonaError> = async {
-        let resp = client.get(&url).send().await?;
-        if resp.status() == reqwest::StatusCode::NOT_FOUND {
-            return Err(BonaError::ModelNotFound(model_id.to_string()));
-        }
-        let resp = resp.error_for_status()?;
-        let info = resp
-            .json::<HfModelInfo>()
-            .await
-            .map_err(|e| BonaError::Parse(e.to_string()))?;
-        Ok(info)
-    }
-    .await;
-
-    match result {
-        Ok(info) => {
-            inv.declared.declared_license = info.license;
-            inv.declared.library = info.library_name;
-            inv.declared.pipeline_tag = info.pipeline_tag;
-            inv.declared.tags = info.tags;
-            inv.declared.downloads = info.downloads;
-            inv.declared.declared_base_model = extract_base_model(&info.card_data);
-
-            inv.sources.push(SourceRecord {
-                source: EvidenceSource::HfMetadata,
-                status: SourceStatus::Ok {
-                    fetched_ms: start.elapsed().as_millis() as u64,
-                },
-            });
-        }
-        Err(e) => {
-            inv.sources.push(SourceRecord {
-                source: EvidenceSource::HfMetadata,
-                status: SourceStatus::Failed {
-                    reason: e.to_string(),
-                },
-            });
-        }
-    }
-}
-
 /// Build an investigation for the given model id.
 pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, BonaError> {
     let client = reqwest::Client::builder()
@@ -208,18 +139,23 @@ pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, BonaError
 
     let mut inv = ModelInvestigation::new(model_id);
 
-    fetch_hf_metadata(&client, model_id, &mut inv).await;
+    let (hf, tree, config, community) = tokio::join!(
+        sources::hf_metadata::fetch(&client, model_id),
+        sources::model_tree::fetch(&client, model_id),
+        sources::model_config::fetch(&client, model_id),
+        sources::community::fetch(&client, model_id),
+    );
 
-    // TODO: Build out evidence sources
-    for source in [
-        EvidenceSource::ModelTree,
-        EvidenceSource::ModelConfig,
-        EvidenceSource::CommunitySignals,
-    ] {
-        inv.sources.push(SourceRecord {
-            source,
-            status: SourceStatus::NotImplemented,
-        });
+    for result in [hf, tree, config, community] {
+        inv.sources.push(result.record);
+        if let Some(evidence) = result.evidence {
+            match evidence {
+                Evidence::HfMetadata(e) => inv.declared = e.declared,
+                Evidence::ModelTree(e) => inv.lineage = Some(e),
+                Evidence::ModelConfig(e) => inv.config = Some(e),
+                Evidence::Community(e) => inv.community = Some(e),
+            }
+        }
     }
 
     compute_findings(&mut inv);
@@ -265,22 +201,5 @@ mod tests {
         });
         inv.sort_findings();
         assert_eq!(inv.findings[0].severity, Severity::High);
-    }
-
-    #[test]
-    fn extract_base_model_handles_string_and_list() {
-        let s = serde_json::json!({ "base_model": "meta-llama/Llama-3.1-8B" });
-        assert_eq!(
-            extract_base_model(&Some(s)),
-            Some("meta-llama/Llama-3.1-8B".to_string())
-        );
-
-        let l = serde_json::json!({ "base_model": ["meta-llama/Llama-3.1-8B", "other"] });
-        assert_eq!(
-            extract_base_model(&Some(l)),
-            Some("meta-llama/Llama-3.1-8B".to_string())
-        );
-
-        assert_eq!(extract_base_model(&None), None);
     }
 }
