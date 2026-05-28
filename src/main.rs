@@ -334,6 +334,18 @@ fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
         })
         .collect();
     println!("  {}", source_parts.join(" · ").dimmed());
+
+    let has_failures = inv
+        .sources
+        .iter()
+        .any(|r| matches!(r.status, bona::SourceStatus::Failed { .. }));
+    if has_failures && std::env::var_os("HF_TOKEN").is_none() {
+        println!(
+            "  {}",
+            "hint: some sources failed - this model may be gated. set HF_TOKEN for full access."
+                .yellow()
+        );
+    }
     println!();
 }
 
