@@ -175,7 +175,7 @@ pub async fn investigate_with_base_url(
     };
 
     // Phase 2: remaining sources fan out concurrently.
-    let author = model_id.split('/').next();
+    let author = model_id.split_once('/').map(|(org, _)| org);
     let (tree, config, community) = tokio::join!(
         sources::model_tree::fetch(&client, base_url, model_id, base_model.as_deref()),
         sources::model_config::fetch(&client, base_url, model_id),
@@ -186,7 +186,7 @@ pub async fn investigate_with_base_url(
         inv.sources.push(result.record);
         if let Some(evidence) = result.evidence {
             match evidence {
-                Evidence::HfMetadata(_) => unreachable!(),
+                Evidence::HfMetadata(_) => {}
                 Evidence::ModelTree(e) => inv.lineage = Some(e),
                 Evidence::ModelConfig(e) => inv.config = Some(e),
                 Evidence::Community(e) => inv.community = Some(e),

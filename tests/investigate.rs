@@ -148,6 +148,14 @@ async fn investigate_populates_all_sources() {
     assert_eq!(community.discussion_count, Some(7));
     assert_eq!(community.closed_discussion_count, Some(3));
 
-    // All 4 sources should be present.
+    // All 4 sources should be present and successful.
     assert_eq!(inv.sources.len(), 4);
+    for source in &inv.sources {
+        assert!(
+            matches!(source.status, bona::SourceStatus::Ok { .. }),
+            "source {:?} should be Ok, got {:?}",
+            source.source,
+            source.status
+        );
+    }
 }
