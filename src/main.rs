@@ -1,11 +1,17 @@
 //! Bona CLI. Parses args, calls `bona::investigate`, and renders the result.
 
 use std::process::ExitCode;
+use std::time::Instant;
 
+use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
+use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
 
-use bona::{ModelInvestigation, Severity, SourceStatus};
+use bona::{ModelInvestigation, Severity};
+
+const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
+const MAX_TAGS: usize = 5;
 
 #[derive(Parser)]
 #[command(
@@ -38,28 +44,46 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Investigate { model_id, json } => match bona::investigate(&model_id).await {
-            Ok(inv) => {
-                if json {
-                    println!("{}", serde_json::to_string_pretty(&inv).unwrap());
-                } else {
-                    print_text_report(&inv);
+        Command::Investigate { model_id, json } => {
+            let spinner = ProgressBar::new_spinner();
+            spinner.set_style(
+                ProgressStyle::default_spinner()
+                    .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+                    .template("{spinner} {msg}")
+                    .unwrap(),
+            );
+            spinner.set_message(format!("Investigating {}...", model_id));
+            spinner.enable_steady_tick(std::time::Duration::from_millis(80));
+
+            let start = Instant::now();
+            let result = bona::investigate(&model_id).await;
+            let elapsed = start.elapsed();
+
+            spinner.finish_and_clear();
+
+            match result {
+                Ok(inv) => {
+                    if json {
+                        println!("{}", serde_json::to_string_pretty(&inv).unwrap());
+                    } else {
+                        print_text_report(&inv, elapsed);
+                    }
+                    let has_high = inv
+                        .findings
+                        .iter()
+                        .any(|f| f.severity == Severity::High);
+                    if has_high {
+                        ExitCode::from(1)
+                    } else {
+                        ExitCode::SUCCESS
+                    }
                 }
-                let has_high = inv
-                    .findings
-                    .iter()
-                    .any(|f| f.severity == Severity::High);
-                if has_high {
-                    ExitCode::from(1)
-                } else {
-                    ExitCode::SUCCESS
+                Err(e) => {
+                    eprintln!("{} {e}", "error:".red().bold());
+                    ExitCode::FAILURE
                 }
             }
-            Err(e) => {
-                eprintln!("{} {e}", "error:".red().bold());
-                ExitCode::FAILURE
-            }
-        },
+        }
     }
 }
 
@@ -73,21 +97,65 @@ fn severity_badge(severity: Severity) -> String {
 }
 
 fn section_header(title: &str) {
-    println!("\n{}", title.bold());
+    println!("\n  {}", title.bold());
 }
 
 fn label(name: &str, value: &str) {
-    println!("  {:<15} {}", name.dimmed(), value);
+    println!("  {:<16} {}", name.dimmed(), value);
+}
+
+/// OSC 8 hyperlink for terminals that support it.
+fn hyperlink(url: &str, text: &str) -> String {
+    format!("\x1b]8;;{url}\x1b\\{text}\x1b]8;;\x1b\\")
+}
+
+/// Format an ISO 8601 timestamp as "Mon YYYY (N years/months ago)".
+fn format_date(iso: &str) -> String {
+    let Ok(dt) = DateTime::parse_from_rfc3339(iso) else {
+        return iso.to_string();
+    };
+    let now = Utc::now();
+    let age = now.signed_duration_since(dt.to_utc());
+    let days = age.num_days();
+
+    let month = dt.format("%b %Y");
+    let ago = if days >= 365 {
+        let years = days / 365;
+        format!("{years} year{}", if years == 1 { "" } else { "s" })
+    } else if days >= 30 {
+        let months = days / 30;
+        format!("{months} month{}", if months == 1 { "" } else { "s" })
+    } else {
+        format!("{days} day{}", if days == 1 { "" } else { "s" })
+    };
+
+    format!("{month} ({ago} ago)")
 }
 
 /// Render a human-readable text report.
-fn print_text_report(inv: &ModelInvestigation) {
+fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
+    println!();
+    let logo = [
+        r"      __",
+        r"     / /  ___  ___  ___ _",
+        r"    / _ \/ _ \/ _ \/ _ `/",
+        r"   /_.__/\___/_//_/\_,_/",
+    ];
+    for line in logo {
+        println!("  {}", line.color(LAVENDER).bold());
+    }
+    println!("  {}", "─── provenance explorer ───".dimmed());
+
+    let hf_url = format!("https://huggingface.co/{}", inv.model_id);
+    let model_link = hyperlink(&hf_url, &inv.model_id);
+    let ms = elapsed.as_millis();
     println!(
-        "{} {}",
-        "Bona investigation".bold(),
-        inv.model_id.cyan().bold()
+        "\n  {} {}  {}",
+        "investigating".dimmed(),
+        model_link.cyan().bold(),
+        format!("({ms}ms)").dimmed(),
     );
-    println!("{}", "─".repeat(60).dimmed());
+    println!("  {}", "─".repeat(58).dimmed());
 
     // Declared facts.
     section_header("Declared facts");
@@ -117,7 +185,21 @@ fn print_text_report(inv: &ModelInvestigation) {
             .unwrap_or_else(|| "(unknown)".into()),
     );
     if !inv.declared.tags.is_empty() {
-        label("tags", &inv.declared.tags.join(", "));
+        let tags = &inv.declared.tags;
+        if tags.len() <= MAX_TAGS {
+            label("tags", &tags.join(", "));
+        } else {
+            let shown: Vec<&str> = tags.iter().take(MAX_TAGS).map(|s| s.as_str()).collect();
+            let remaining = tags.len() - MAX_TAGS;
+            label(
+                "tags",
+                &format!(
+                    "{} {}",
+                    shown.join(", "),
+                    format!("+{remaining} more").dimmed()
+                ),
+            );
+        }
     }
 
     // Lineage.
@@ -137,7 +219,10 @@ fn print_text_report(inv: &ModelInvestigation) {
             label("parent", "(none declared)");
         }
         if !lineage.siblings.is_empty() {
-            label("siblings", &lineage.siblings.join(", "));
+            label("siblings", &format!("· {}", lineage.siblings[0]).dimmed().to_string());
+            for sib in &lineage.siblings[1..] {
+                println!("  {:<16} {}", "", format!("· {sib}").dimmed());
+            }
         }
     }
 
@@ -175,7 +260,7 @@ fn print_text_report(inv: &ModelInvestigation) {
             label("author", author);
         }
         if let Some(created) = &community.author_created_at {
-            label("account created", created);
+            label("account created", &format_date(created));
         }
         if let Some(count) = community.author_model_count {
             label("author models", &format_number(count));
@@ -186,32 +271,30 @@ fn print_text_report(inv: &ModelInvestigation) {
         }
     }
 
-    // Evidence sources.
-    section_header("Evidence sources");
-    for rec in &inv.sources {
-        let status = match &rec.status {
-            SourceStatus::Ok { fetched_ms } => format!("{} ({}ms)", "ok".green(), fetched_ms),
-            SourceStatus::Failed { reason } => format!("{} {reason}", "failed:".red()),
-            SourceStatus::NotImplemented => format!("{}", "not implemented".dimmed()),
-        };
-        println!("  {:<15} {}", format!("{:?}", rec.source).dimmed(), status);
-    }
-
     // Findings.
+    println!("\n  {}", "─".repeat(58).dimmed());
     section_header("Findings");
     if inv.findings.is_empty() {
-        println!("  {}", "No issues found.".green());
+        println!("    {}", "No issues found.".green());
     } else {
         for f in &inv.findings {
-            println!("\n  {} {}", severity_badge(f.severity), f.title.bold());
-            println!("  {}", f.detail);
+            println!();
+            println!("    {} {}", severity_badge(f.severity), f.title.bold());
+            for line in wrap_text(&f.detail, 54) {
+                println!("           {line}");
+            }
             if let Some(url) = &f.evidence_url {
-                println!("  {} {}", "evidence:".dimmed(), url.underline());
+                println!(
+                    "           {} {}",
+                    "evidence:".dimmed(),
+                    hyperlink(url, url).underline()
+                );
             }
         }
         println!();
         print_summary(inv);
     }
+    println!();
 }
 
 fn print_summary(inv: &ModelInvestigation) {
@@ -246,10 +329,32 @@ fn print_summary(inv: &ModelInvestigation) {
 
     let plural = if total == 1 { "" } else { "s" };
     println!(
-        "  {} {total} finding{plural} ({})",
+        "    {} {total} finding{plural} ({})",
         "Summary:".bold(),
         parts.join(", ")
     );
+}
+
+/// Wrap text at word boundaries to fit within `width` columns.
+fn wrap_text(text: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current = String::new();
+
+    for word in text.split_whitespace() {
+        if current.is_empty() {
+            current = word.to_string();
+        } else if current.len() + 1 + word.len() > width {
+            lines.push(current);
+            current = word.to_string();
+        } else {
+            current.push(' ');
+            current.push_str(word);
+        }
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines
 }
 
 /// Format a number with comma separators.
