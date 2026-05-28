@@ -37,6 +37,10 @@ enum Command {
         /// Emit the full investigation document as JSON instead of a text report.
         #[arg(long)]
         json: bool,
+
+        /// Exit with code 1 if any high-severity findings are detected (for CI).
+        #[arg(long)]
+        fail_on_high: bool,
     },
     /// Generate shell completions for bash, zsh, fish, or powershell.
     Completions {
@@ -59,7 +63,11 @@ async fn main() -> ExitCode {
             clap_complete::generate(shell, &mut Cli::command(), "bona", &mut std::io::stdout());
             return ExitCode::SUCCESS;
         }
-        Command::Investigate { model_id, json } => {
+        Command::Investigate {
+            model_id,
+            json,
+            fail_on_high,
+        } => {
             if !model_id.contains('/') {
                 eprintln!(
                     "{} model id must be in org/name format (ex. meta-llama/Llama-3.1-8B-Instruct)",
@@ -92,8 +100,7 @@ async fn main() -> ExitCode {
                     } else {
                         print_text_report(&inv, elapsed);
                     }
-                    let has_high = inv.findings.iter().any(|f| f.severity == Severity::High);
-                    if has_high {
+                    if fail_on_high && inv.findings.iter().any(|f| f.severity == Severity::High) {
                         ExitCode::from(1)
                     } else {
                         ExitCode::SUCCESS
