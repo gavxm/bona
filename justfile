@@ -21,13 +21,13 @@ watch:
 deny:
     cargo deny check
 
-# Investigate a model (ex. `just run meta-llama/Llama-3.1-8B-Instruct`).
-run model_id:
-    cargo run -- investigate {{model_id}}
+# Investigate a model (ex. `just inv meta-llama/Llama-3.1-8B-Instruct`).
+inv model_id:
+    -cargo build --quiet && ./target/debug/bona investigate {{model_id}}
 
 # Investigate a model and output JSON.
-run-json model_id:
-    cargo run -- investigate {{model_id}} --json
+inv-json model_id:
+    cargo build --quiet && ./target/debug/bona investigate {{model_id}} --json
 
 # Review pending insta snapshots.
 snapshots:
