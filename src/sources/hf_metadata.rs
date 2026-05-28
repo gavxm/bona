@@ -47,9 +47,15 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
 
     match result {
         Ok(info) => {
+            let card_license = info
+                .card_data
+                .as_ref()
+                .and_then(|cd| cd.get("license"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
             let declared = DeclaredFacts {
                 model_id: model_id.to_string(),
-                declared_license: info.license,
+                declared_license: card_license.or(info.license),
                 declared_base_model: extract_base_model(&info.card_data),
                 library: info.library_name,
                 pipeline_tag: info.pipeline_tag,
