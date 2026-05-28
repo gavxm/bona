@@ -44,3 +44,8 @@ web-build:
 # Pre-bake an investigation JSON for the web gallery.
 web-prebake model_id:
     cargo build --quiet && ./target/debug/bona investigate {{model_id}} --json > web/public/investigations/$(echo {{model_id}} | tr '/' '--').json
+    just web-gallery
+
+# Regenerate the gallery manifest from pre-baked JSONs.
+web-gallery:
+    cd web && node -e "const fs=require('fs'),dir='public/investigations',files=fs.readdirSync(dir).filter(f=>f.endsWith('.json')&&f!=='gallery.json'),models=files.map(f=>{const id=f.replace('.json','').replace('--','/'),d=JSON.parse(fs.readFileSync(dir+'/'+f,'utf-8'));return{id,file:f,tag:d.findings.length>0?'has findings':'clean',findingCount:d.findings.length}});fs.writeFileSync(dir+'/gallery.json',JSON.stringify(models,null,2));console.log(models.length+' models in gallery')"

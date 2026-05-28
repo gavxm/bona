@@ -61,6 +61,9 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
       if (!resp.ok) throw new Error(`Failed to load investigation for ${modelId}`);
       const data = await resp.json();
       setInvestigation(data);
+      const url = new URL(window.location.href);
+      url.searchParams.set("model", modelId);
+      window.history.replaceState(null, "", url.toString());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
       setInvestigation(null);

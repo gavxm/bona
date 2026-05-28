@@ -1,13 +1,30 @@
+import { useEffect, useState } from "react";
 import { useInvestigation } from "../context/useInvestigation";
 
-const GALLERY_MODELS = [
-  { id: "ruslanmv/Medical-Llama3-8B", label: "Medical-Llama3-8B", tag: "license violation" },
-  { id: "microsoft/phi-2", label: "phi-2", tag: "clean model" },
-  { id: "TheBloke/Llama-2-7B-Chat-GGUF", label: "Llama-2-7B-Chat-GGUF", tag: "full lineage" },
-];
+interface GalleryModel {
+  id: string;
+  file: string;
+  tag: string;
+  findingCount: number;
+}
 
 export function GalleryPicker() {
   const { investigation, loadInvestigation } = useInvestigation();
+  const [models, setModels] = useState<GalleryModel[]>([]);
+
+  useEffect(() => {
+    fetch("/investigations/gallery.json")
+      .then((r) => r.json())
+      .then(setModels)
+      .catch(() => {});
+  }, []);
+
+  const label = (m: GalleryModel) => {
+    const short = m.id.split("/").pop() ?? m.id;
+    return m.findingCount > 0
+      ? `${short} — ${m.findingCount} finding${m.findingCount !== 1 ? "s" : ""}`
+      : `${short} — clean`;
+  };
 
   return (
     <select
@@ -20,9 +37,9 @@ export function GalleryPicker() {
       <option value="" disabled>
         select a model...
       </option>
-      {GALLERY_MODELS.map((m) => (
+      {models.map((m) => (
         <option key={m.id} value={m.id}>
-          {m.label} - {m.tag}
+          {label(m)}
         </option>
       ))}
     </select>

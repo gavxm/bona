@@ -1,12 +1,13 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 
-export interface SiblingNodeData {
+export type SiblingNodeData = {
   modelId: string;
-}
+};
 
-export function SiblingNode({ data }: NodeProps) {
-  const d = data as unknown as SiblingNodeData;
-  const shortId = d.modelId.split("/").pop() ?? d.modelId;
+export type SiblingNodeType = Node<SiblingNodeData, "sibling">;
+
+export function SiblingNode({ data }: NodeProps<SiblingNodeType>) {
+  const shortId = data.modelId.split("/").pop() ?? data.modelId;
 
   return (
     <div className="px-2 py-1 rounded border border-text-muted/40 bg-bg-raised text-center cursor-pointer hover:border-text-secondary transition-colors">

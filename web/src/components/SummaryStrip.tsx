@@ -1,5 +1,4 @@
 import { useInvestigation } from "../context/useInvestigation";
-import type { SourceStatus } from "../types";
 
 export function SummaryStrip() {
   const { investigation } = useInvestigation();
@@ -15,8 +14,7 @@ export function SummaryStrip() {
     (s) => s.status.status === "failed"
   ).length;
   const totalTime = investigation.sources.reduce((sum, s) => {
-    if (s.status.status === "ok") return sum + (s.status as Extract<SourceStatus, { status: "ok" }>).fetched_ms;
-    return sum;
+    return sum + (s.status.status === "ok" ? s.status.fetched_ms : 0);
   }, 0);
 
   const isClean = highCount === 0 && medCount === 0;
