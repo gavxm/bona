@@ -24,6 +24,9 @@ pub fn check(inv: &mut ModelInvestigation) {
                     "Account '{author}' was created {age_days} days ago. \
                      New accounts uploading models warrant extra scrutiny.",
                 ),
+                reason: "New accounts are a common vector for re-uploading models \
+                         with stripped licenses or injected weights."
+                    .into(),
                 evidence_url: Some(format!("https://huggingface.co/{author}")),
             });
         }
@@ -37,6 +40,9 @@ pub fn check(inv: &mut ModelInvestigation) {
             severity: Severity::Info,
             detail: "Model has zero discussion threads. \
                      No community review or feedback has occurred."
+                .into(),
+            reason: "Community engagement is a weak trust signal. \
+                     Absence alone is not a risk, but combined with other findings it adds context."
                 .into(),
             evidence_url: Some(format!(
                 "https://huggingface.co/{}/discussions",

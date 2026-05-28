@@ -52,7 +52,7 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 134
+        "fetched_ms": 183
       }
     },
     {
@@ -66,14 +66,14 @@
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 124
+        "fetched_ms": 128
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 134
+        "fetched_ms": 159
       }
     }
   ],
@@ -83,6 +83,7 @@
       "title": "No base model declared",
       "severity": "low",
       "detail": "Model has weights but does not declare a base model. Lineage cannot be verified.",
+      "reason": "Without a declared parent, license inheritance cannot be checked.",
       "evidence_url": "https://huggingface.co/microsoft/phi-2"
     }
   ]

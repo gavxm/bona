@@ -77,28 +77,28 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 136
+        "fetched_ms": 217
       }
     },
     {
       "source": "model_tree",
       "status": {
         "status": "ok",
-        "fetched_ms": 117
+        "fetched_ms": 126
       }
     },
     {
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 142
+        "fetched_ms": 149
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 150
+        "fetched_ms": 161
       }
     }
   ],
@@ -108,6 +108,15 @@
       "title": "License inheritance violation",
       "severity": "high",
       "detail": "Declares 'apache-2.0' but parent meta-llama/Meta-Llama-3-8B uses 'llama3' (Meta Community License). A derivative cannot grant more permissive rights than the original license allows.",
+      "reason": "Commercial-use and redistribution rights may be revoked. The parent license restricts usage that the declared license permits.",
+      "evidence_url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
+    },
+    {
+      "id": "gated_derivative",
+      "title": "Derivative of a gated model is publicly accessible",
+      "severity": "medium",
+      "detail": "Parent model 'meta-llama/Meta-Llama-3-8B' uses 'llama3', which is typically distributed with access controls (gating). This derivative is publicly accessible without gating.",
+      "reason": "Gated models have access controls for legal or safety reasons. A public derivative may bypass those restrictions.",
       "evidence_url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
     }
   ]

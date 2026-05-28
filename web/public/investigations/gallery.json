@@ -2,19 +2,19 @@
   {
     "id": "TheBloke/Llama-2-7B-Chat-GGUF",
     "file": "TheBloke--Llama-2-7B-Chat-GGUF.json",
-    "tag": "clean",
-    "findingCount": 0
+    "tag": "has findings",
+    "findingCount": 1
   },
   {
     "id": "microsoft/phi-2",
     "file": "microsoft--phi-2.json",
-    "tag": "clean",
+    "tag": "has findings",
     "findingCount": 1
   },
   {
     "id": "ruslanmv/Medical-Llama3-8B",
     "file": "ruslanmv--Medical-Llama3-8B.json",
     "tag": "has findings",
-    "findingCount": 1
+    "findingCount": 2
   }
 ]

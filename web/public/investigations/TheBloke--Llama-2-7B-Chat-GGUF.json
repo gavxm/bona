@@ -58,30 +58,39 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 104
+        "fetched_ms": 102
       }
     },
     {
       "source": "model_tree",
       "status": {
         "status": "ok",
-        "fetched_ms": 186
+        "fetched_ms": 185
       }
     },
     {
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 246
+        "fetched_ms": 202
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 252
+        "fetched_ms": 187
       }
     }
   ],
-  "findings": []
+  "findings": [
+    {
+      "id": "gated_derivative",
+      "title": "Derivative of a gated model is publicly accessible",
+      "severity": "medium",
+      "detail": "Parent model 'meta-llama/Llama-2-7b-chat-hf' uses 'llama2', which is typically distributed with access controls (gating). This derivative is publicly accessible without gating.",
+      "reason": "Gated models have access controls for legal or safety reasons. A public derivative may bypass those restrictions.",
+      "evidence_url": "https://huggingface.co/meta-llama/Llama-2-7b-chat-hf"
+    }
+  ]
 }

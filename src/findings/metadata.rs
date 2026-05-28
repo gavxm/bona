@@ -27,6 +27,9 @@ pub fn check(inv: &mut ModelInvestigation) {
                          '{}' does not appear in the model tags.",
                         arch, model_type, model_type,
                     ),
+                    reason: "Minor metadata inconsistency. Tags are user-maintained \
+                             and may simply be incomplete."
+                        .into(),
                     evidence_url: Some(format!(
                         "https://huggingface.co/{}/blob/main/config.json",
                         inv.model_id,
@@ -66,6 +69,9 @@ pub fn check(inv: &mut ModelInvestigation) {
                      estimated size ({est_b:.1} GB) based on architecture parameters \
                      (hidden={hidden}, layers={layers}, vocab={vocab}).",
                 ),
+                reason: "Weight size mismatch may indicate quantization, pruning, \
+                         or a mislabeled architecture. Not necessarily malicious."
+                    .into(),
                 evidence_url: Some(format!(
                     "https://huggingface.co/{}/blob/main/model.safetensors.index.json",
                     inv.model_id,

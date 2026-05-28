@@ -77,6 +77,8 @@ pub struct Finding {
     pub title: String,
     pub severity: Severity,
     pub detail: String,
+    /// Why this severity was assigned; helps users triage.
+    pub reason: String,
     /// Link to the underlying evidence on HF.
     pub evidence_url: Option<String>,
 }
@@ -226,6 +228,7 @@ mod tests {
             title: "low one".into(),
             severity: Severity::Low,
             detail: "".into(),
+            reason: "".into(),
             evidence_url: None,
         });
         inv.findings.push(Finding {
@@ -233,6 +236,7 @@ mod tests {
             title: "high one".into(),
             severity: Severity::High,
             detail: "".into(),
+            reason: "".into(),
             evidence_url: None,
         });
         inv.sort_findings();

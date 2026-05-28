@@ -90,6 +90,9 @@ pub fn check(inv: &mut ModelInvestigation) {
                      model_type '{}' ({} family).{exists_note}",
                     parent_id, pf, model_type, cf,
                 ),
+                reason: "Architecture mismatch suggests the model may not actually derive \
+                         from the declared parent, or the declaration is incorrect."
+                    .into(),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }

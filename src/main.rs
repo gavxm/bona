@@ -338,6 +338,11 @@ fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration) {
             for line in wrap_text(&f.detail, 54) {
                 println!("           {line}");
             }
+            if !f.reason.is_empty() {
+                for line in wrap_text(&f.reason, 54) {
+                    println!("           {}", line.dimmed());
+                }
+            }
             if let Some(url) = &f.evidence_url {
                 println!(
                     "           {} {}",

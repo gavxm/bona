@@ -12,18 +12,22 @@ pub fn check(inv: &mut ModelInvestigation) {
             detail: "Model has no license in its card metadata. \
                      Users cannot determine usage rights."
                 .into(),
+            reason: "Absence of a license is legally ambiguous. \
+                     Default copyright applies, which restricts all use."
+                .into(),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
         });
     }
 
     if d.declared_base_model.is_none() && inv.config.is_some() {
-        // Only flag this if we have config data (if the model has weights).
         inv.findings.push(Finding {
             id: "missing_base_model".into(),
             title: "No base model declared".into(),
             severity: Severity::Low,
             detail: "Model has weights but does not declare a base model. \
                      Lineage cannot be verified."
+                .into(),
+            reason: "Without a declared parent, license inheritance cannot be checked."
                 .into(),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
         });

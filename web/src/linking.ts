@@ -57,4 +57,9 @@ export const FINDING_LINKS: Record<string, FindingLink> = {
     centerTab: "config",
     centerFields: ["safetensors_total_size"],
   },
+  gated_derivative: {
+    graphNodes: ["parent", "subject"],
+    centerTab: "declared",
+    centerFields: ["declared_license"],
+  },
 };

@@ -18,13 +18,18 @@ export function FindingCard({ finding }: { finding: Finding }) {
     >
       <div className="flex items-center gap-2">
         <SeverityBadge severity={finding.severity} />
-        <span className="text-[13px] font-semibold text-text-primary truncate">
+        <span className="text-[13px] font-semibold text-text-primary">
           {finding.title}
         </span>
       </div>
-      <p className="text-[11px] text-text-muted leading-relaxed mt-2 pl-0.5">
+      <p className="text-[11px] text-text-secondary leading-relaxed mt-2 pl-0.5">
         {finding.detail}
       </p>
+      {finding.reason && (
+        <p className="text-[10px] text-text-muted leading-relaxed mt-1 pl-0.5 italic">
+          {finding.reason}
+        </p>
+      )}
       {finding.evidence_url && (
         <a
           href={finding.evidence_url}

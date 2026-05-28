@@ -21,6 +21,7 @@ export interface Finding {
   title: string;
   severity: Severity;
   detail: string;
+  reason: string;
   evidence_url: string | null;
 }
 
