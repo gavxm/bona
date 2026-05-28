@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "model_id": "ruslanmv/Medical-Llama3-8B",
+  "investigated_at": "2026-05-28T11:29:53.329291+00:00",
   "declared": {
     "model_id": "ruslanmv/Medical-Llama3-8B",
     "declared_license": "apache-2.0",
@@ -77,28 +78,28 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 217
+        "fetched_ms": 163
       }
     },
     {
       "source": "model_tree",
       "status": {
         "status": "ok",
-        "fetched_ms": 126
+        "fetched_ms": 117
       }
     },
     {
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 149
+        "fetched_ms": 139
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 161
+        "fetched_ms": 143
       }
     }
   ],
@@ -109,6 +110,8 @@
       "severity": "high",
       "detail": "Declares 'apache-2.0' but parent meta-llama/Meta-Llama-3-8B uses 'llama3' (Meta Community License). A derivative cannot grant more permissive rights than the original license allows.",
       "reason": "Commercial-use and redistribution rights may be revoked. The parent license restricts usage that the declared license permits.",
+      "declared_value": "apache-2.0",
+      "actual_value": "llama3 (from meta-llama/Meta-Llama-3-8B)",
       "evidence_url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
     },
     {
@@ -117,6 +120,8 @@
       "severity": "medium",
       "detail": "Parent model 'meta-llama/Meta-Llama-3-8B' uses 'llama3', which is typically distributed with access controls (gating). This derivative is publicly accessible without gating.",
       "reason": "Gated models have access controls for legal or safety reasons. A public derivative may bypass those restrictions.",
+      "declared_value": "llama3 (gated)",
+      "actual_value": "public access (no gate)",
       "evidence_url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
     }
   ]

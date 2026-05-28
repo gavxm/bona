@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "model_id": "microsoft/phi-2",
+  "investigated_at": "2026-05-28T11:29:53.656509+00:00",
   "declared": {
     "model_id": "microsoft/phi-2",
     "declared_license": "mit",
@@ -52,7 +53,7 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 183
+        "fetched_ms": 211
       }
     },
     {
@@ -66,14 +67,14 @@
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 128
+        "fetched_ms": 116
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 159
+        "fetched_ms": 148
       }
     }
   ],
@@ -84,6 +85,7 @@
       "severity": "low",
       "detail": "Model has weights but does not declare a base model. Lineage cannot be verified.",
       "reason": "Without a declared parent, license inheritance cannot be checked.",
+      "actual_value": "(no base_model field)",
       "evidence_url": "https://huggingface.co/microsoft/phi-2"
     }
   ]

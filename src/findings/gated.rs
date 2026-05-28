@@ -47,6 +47,8 @@ pub fn check(inv: &mut ModelInvestigation) {
             reason: "Gated models have access controls for legal or safety reasons. \
                      A public derivative may bypass those restrictions."
                 .into(),
+            declared_value: Some(format!("{parent_license} (gated)")),
+            actual_value: Some("public access (no gate)".into()),
             evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
         });
     }
@@ -95,6 +97,7 @@ mod tests {
     fn make_inv(parent_license: &str, config_ok: bool) -> ModelInvestigation {
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/child".into(),
             declared: DeclaredFacts {
                 model_id: "test/child".into(),

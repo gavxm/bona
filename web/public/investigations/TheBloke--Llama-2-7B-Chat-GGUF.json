@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "model_id": "TheBloke/Llama-2-7B-Chat-GGUF",
+  "investigated_at": "2026-05-28T11:29:54.029987+00:00",
   "declared": {
     "model_id": "TheBloke/Llama-2-7B-Chat-GGUF",
     "declared_license": "llama2",
@@ -58,28 +59,28 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 102
+        "fetched_ms": 106
       }
     },
     {
       "source": "model_tree",
       "status": {
         "status": "ok",
-        "fetched_ms": 185
+        "fetched_ms": 108
       }
     },
     {
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 202
+        "fetched_ms": 209
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 187
+        "fetched_ms": 196
       }
     }
   ],
@@ -90,6 +91,8 @@
       "severity": "medium",
       "detail": "Parent model 'meta-llama/Llama-2-7b-chat-hf' uses 'llama2', which is typically distributed with access controls (gating). This derivative is publicly accessible without gating.",
       "reason": "Gated models have access controls for legal or safety reasons. A public derivative may bypass those restrictions.",
+      "declared_value": "llama2 (gated)",
+      "actual_value": "public access (no gate)",
       "evidence_url": "https://huggingface.co/meta-llama/Llama-2-7b-chat-hf"
     }
   ]

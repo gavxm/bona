@@ -15,6 +15,8 @@ pub fn check(inv: &mut ModelInvestigation) {
             reason: "Absence of a license is legally ambiguous. \
                      Default copyright applies, which restricts all use."
                 .into(),
+            declared_value: None,
+            actual_value: Some("(no license field)".into()),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
         });
     }
@@ -29,6 +31,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                 .into(),
             reason: "Without a declared parent, license inheritance cannot be checked."
                 .into(),
+            declared_value: None,
+            actual_value: Some("(no base_model field)".into()),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
         });
     }
@@ -74,6 +78,7 @@ mod tests {
     fn make_inv(license: Option<&str>, base_model: Option<&str>) -> ModelInvestigation {
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/model".into(),
             declared: DeclaredFacts {
                 model_id: "test/model".into(),

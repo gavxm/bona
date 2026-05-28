@@ -1,6 +1,21 @@
 import { useInvestigation } from "../context/useInvestigation";
 import { GalleryPicker } from "./GalleryPicker";
 
+function formatTimestamp(iso: string): string {
+  try {
+    const dt = new Date(iso);
+    return dt.toLocaleString("en", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 export function TopBar() {
   const { investigation } = useInvestigation();
 
@@ -17,6 +32,9 @@ export function TopBar() {
             <span className="text-border text-xs">│</span>
             <span className="text-text-secondary text-xs font-mono">
               {investigation.model_id}
+            </span>
+            <span className="text-text-muted text-[10px]">
+              investigated {formatTimestamp(investigation.investigated_at)}
             </span>
           </>
         )}

@@ -93,6 +93,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                 reason: "Architecture mismatch suggests the model may not actually derive \
                          from the declared parent, or the declaration is incorrect."
                     .into(),
+                declared_value: Some(format!("{parent_id} ({pf} family)")),
+                actual_value: Some(format!("{model_type} ({cf} family)")),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }
@@ -155,6 +157,7 @@ mod tests {
 
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/child".into(),
             declared: DeclaredFacts {
                 model_id: "test/child".into(),

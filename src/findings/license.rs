@@ -117,6 +117,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                 reason: "Commercial-use and redistribution rights may be revoked. \
                          The parent license restricts usage that the declared license permits."
                     .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{parent_license} (from {parent_id})")),
                 evidence_url: Some(format!(
                     "https://huggingface.co/{parent_id}"
                 )),
@@ -136,6 +138,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                 reason: "Both licenses are in the same restrictiveness tier. \
                          Likely an attribution or compatibility issue, not a rights violation."
                     .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{parent_license} (from {parent_id})")),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }
@@ -153,6 +157,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                 ),
                 reason: "Cannot determine if the license is compatible. Manual review recommended."
                     .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{parent_license} (from {parent_id})")),
                 evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
             });
         }
@@ -220,6 +226,7 @@ mod tests {
 
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/child".into(),
             declared: DeclaredFacts {
                 model_id: "test/child".into(),

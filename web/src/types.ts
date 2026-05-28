@@ -22,6 +22,8 @@ export interface Finding {
   severity: Severity;
   detail: string;
   reason: string;
+  declared_value?: string | null;
+  actual_value?: string | null;
   evidence_url: string | null;
 }
 
@@ -63,6 +65,7 @@ export interface CommunityEvidence {
 export interface ModelInvestigation {
   schema_version: number;
   model_id: string;
+  investigated_at: string;
   declared: DeclaredFacts;
   lineage: ModelTreeEvidence | null;
   config: ModelConfigEvidence | null;

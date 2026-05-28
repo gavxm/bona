@@ -30,6 +30,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                     reason: "Minor metadata inconsistency. Tags are user-maintained \
                              and may simply be incomplete."
                         .into(),
+                    declared_value: Some(format!("tags: [{}]", tags.join(", "))),
+                    actual_value: Some(format!("model_type: {model_type}")),
                     evidence_url: Some(format!(
                         "https://huggingface.co/{}/blob/main/config.json",
                         inv.model_id,
@@ -72,6 +74,8 @@ pub fn check(inv: &mut ModelInvestigation) {
                 reason: "Weight size mismatch may indicate quantization, pruning, \
                          or a mislabeled architecture. Not necessarily malicious."
                     .into(),
+                declared_value: Some(format!("{est_b:.1} GB (estimated from config)")),
+                actual_value: Some(format!("{actual_b:.1} GB (safetensors)")),
                 evidence_url: Some(format!(
                     "https://huggingface.co/{}/blob/main/model.safetensors.index.json",
                     inv.model_id,
@@ -111,6 +115,7 @@ mod tests {
     ) -> ModelInvestigation {
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
             model_id: "test/model".into(),
             declared: DeclaredFacts {
                 model_id: "test/model".into(),

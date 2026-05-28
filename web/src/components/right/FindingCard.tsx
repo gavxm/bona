@@ -6,6 +6,7 @@ import { useInvestigation } from "../../context/useInvestigation";
 export function FindingCard({ finding }: { finding: Finding }) {
   const { selectedFindingId, selectFinding } = useInvestigation();
   const isSelected = selectedFindingId === finding.id;
+  const hasDiff = finding.declared_value || finding.actual_value;
 
   return (
     <button
@@ -25,8 +26,24 @@ export function FindingCard({ finding }: { finding: Finding }) {
       <p className="text-[11px] text-text-secondary leading-relaxed mt-2 pl-0.5">
         {finding.detail}
       </p>
+      {hasDiff && (
+        <div className="mt-2 ml-0.5 text-[10px] font-mono rounded border border-border bg-bg-base px-2.5 py-1.5">
+          {finding.declared_value && (
+            <div className="flex gap-2">
+              <span className="text-severity-high w-12 shrink-0">declared</span>
+              <span className="text-text-primary">{finding.declared_value}</span>
+            </div>
+          )}
+          {finding.actual_value && (
+            <div className="flex gap-2">
+              <span className="text-status-ok w-12 shrink-0">actual</span>
+              <span className="text-text-primary">{finding.actual_value}</span>
+            </div>
+          )}
+        </div>
+      )}
       {finding.reason && (
-        <p className="text-[10px] text-text-muted leading-relaxed mt-1 pl-0.5 italic">
+        <p className="text-[10px] text-text-muted leading-relaxed mt-1.5 pl-0.5 italic">
           {finding.reason}
         </p>
       )}
