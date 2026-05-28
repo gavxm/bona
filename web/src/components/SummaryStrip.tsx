@@ -37,7 +37,9 @@ export function SummaryStrip() {
         {sourcesOk}/{sourcesOk + sourcesFailed} sources
       </span>
       <span className="text-text-muted">·</span>
-      <span className="text-text-muted font-mono">{totalTime}ms</span>
+      <span className="text-text-muted font-mono">
+        {totalTime}ms
+      </span>
     </div>
   );
 }
