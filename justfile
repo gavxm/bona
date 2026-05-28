@@ -32,3 +32,15 @@ inv-json model_id:
 # Review pending insta snapshots.
 snapshots:
     cargo insta review
+
+# Start the web UI dev server.
+web-dev:
+    cd web && npm run dev
+
+# Build the web UI for production.
+web-build:
+    cd web && npm run build
+
+# Pre-bake an investigation JSON for the web gallery.
+web-prebake model_id:
+    cargo build --quiet && ./target/debug/bona investigate {{model_id}} --json > web/public/investigations/$(echo {{model_id}} | tr '/' '--').json
