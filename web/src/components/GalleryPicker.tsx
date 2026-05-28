@@ -13,7 +13,7 @@ export function GalleryPicker() {
   const [models, setModels] = useState<GalleryModel[]>([]);
 
   useEffect(() => {
-    fetch("/investigations/gallery.json")
+    fetch(`${import.meta.env.BASE_URL}investigations/gallery.json`)
       .then((r) => r.json())
       .then(setModels)
       .catch(() => {});
