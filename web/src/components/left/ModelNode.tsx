@@ -19,7 +19,7 @@ export function ModelNode({ data }: NodeProps) {
         "px-2.5 py-1.5 rounded border text-center transition-all duration-150 cursor-pointer",
         d.isSubject
           ? "border-accent bg-bg-raised shadow-[0_0_8px_rgba(180,160,230,0.3)]"
-          : "border-border bg-bg-surface",
+          : "border-border bg-bg-surface hover:border-text-muted",
         d.exists === false && "border-dashed border-severity-high/50",
         d.highlighted && "border-accent shadow-[0_0_12px_rgba(180,160,230,0.5)]"
       )}

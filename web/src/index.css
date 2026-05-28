@@ -41,6 +41,7 @@ body {
 .react-flow__edge-path {
   stroke: var(--color-text-muted) !important;
 }
+
 .react-flow__controls button {
   background-color: var(--color-bg-raised) !important;
   border-color: var(--color-border) !important;
