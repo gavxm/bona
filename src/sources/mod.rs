@@ -11,10 +11,9 @@ pub fn extract_base_model(card_data: &Option<serde_json::Value>) -> Option<Strin
     let bm = cd.get("base_model")?;
     match bm {
         serde_json::Value::String(s) => Some(s.clone()),
-        serde_json::Value::Array(arr) => arr
-            .first()
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
+        serde_json::Value::Array(arr) => {
+            arr.first().and_then(|v| v.as_str()).map(|s| s.to_string())
+        }
         _ => None,
     }
 }

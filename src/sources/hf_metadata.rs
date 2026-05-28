@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::{BonaError, DeclaredFacts, EvidenceSource};
 
-use super::{extract_base_model, Evidence, FetchResult};
+use super::{Evidence, FetchResult, extract_base_model};
 
 /// Evidence extracted from the HF API metadata endpoint.
 pub struct HfMetadataEvidence {
@@ -66,4 +66,3 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
         Err(e) => FetchResult::failed(EvidenceSource::HfMetadata, e),
     }
 }
-

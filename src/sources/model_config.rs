@@ -101,10 +101,7 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
             Err(e) => format!("config.json fetch failed: {e}"),
             _ => "config.json not found or inaccessible".to_string(),
         };
-        FetchResult::failed(
-            EvidenceSource::ModelConfig,
-            BonaError::Parse(reason),
-        )
+        FetchResult::failed(EvidenceSource::ModelConfig, BonaError::Parse(reason))
     }
 }
 

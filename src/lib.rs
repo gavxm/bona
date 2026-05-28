@@ -146,8 +146,8 @@ pub async fn investigate_with_base_url(
     model_id: &str,
     base_url: &str,
 ) -> Result<ModelInvestigation, BonaError> {
-    let mut builder = reqwest::Client::builder()
-        .user_agent(concat!("bona/", env!("CARGO_PKG_VERSION")));
+    let mut builder =
+        reqwest::Client::builder().user_agent(concat!("bona/", env!("CARGO_PKG_VERSION")));
 
     if let Ok(token) = std::env::var("HF_TOKEN") {
         use reqwest::header;
