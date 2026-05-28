@@ -36,17 +36,6 @@ pub enum Evidence {
 }
 
 impl FetchResult {
-    /// Convenience for sources that aren't implemented yet.
-    pub fn not_implemented(source: EvidenceSource) -> Self {
-        FetchResult {
-            record: SourceRecord {
-                source,
-                status: SourceStatus::NotImplemented,
-            },
-            evidence: None,
-        }
-    }
-
     /// Convenience for a source that failed.
     pub fn failed(source: EvidenceSource, err: BonaError) -> Self {
         FetchResult {

@@ -55,15 +55,15 @@ struct TokenizerConfig {
     tokenizer_class: Option<String>,
 }
 
-pub async fn fetch(client: &reqwest::Client, model_id: &str) -> FetchResult {
+pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> FetchResult {
     let start = std::time::Instant::now();
 
     let mut evidence = ModelConfigEvidence::default();
 
     let (config_result, safetensors_result, tokenizer_result) = tokio::join!(
-        fetch_config_json(client, model_id),
-        fetch_safetensors_index(client, model_id),
-        fetch_tokenizer_config(client, model_id),
+        fetch_config_json(client, base_url, model_id),
+        fetch_safetensors_index(client, base_url, model_id),
+        fetch_tokenizer_config(client, base_url, model_id),
     );
 
     let mut any_succeeded = false;
@@ -111,9 +111,10 @@ pub async fn fetch(client: &reqwest::Client, model_id: &str) -> FetchResult {
 /// Fetch and parse config.json from the model repo.
 async fn fetch_config_json(
     client: &reqwest::Client,
+    base_url: &str,
     model_id: &str,
 ) -> Result<Option<ConfigJson>, BonaError> {
-    let url = format!("https://huggingface.co/{model_id}/resolve/main/config.json");
+    let url = format!("{base_url}/{model_id}/resolve/main/config.json");
     let resp = client.get(&url).send().await?;
 
     if resp.status() == reqwest::StatusCode::NOT_FOUND
@@ -134,10 +135,10 @@ async fn fetch_config_json(
 /// Fetch total size from model.safetensors.index.json.
 async fn fetch_safetensors_index(
     client: &reqwest::Client,
+    base_url: &str,
     model_id: &str,
 ) -> Result<Option<u64>, BonaError> {
-    let url =
-        format!("https://huggingface.co/{model_id}/resolve/main/model.safetensors.index.json");
+    let url = format!("{base_url}/{model_id}/resolve/main/model.safetensors.index.json");
     let resp = client.get(&url).send().await?;
 
     if resp.status() == reqwest::StatusCode::NOT_FOUND
@@ -158,9 +159,10 @@ async fn fetch_safetensors_index(
 /// Fetch tokenizer class from tokenizer_config.json.
 async fn fetch_tokenizer_config(
     client: &reqwest::Client,
+    base_url: &str,
     model_id: &str,
 ) -> Result<Option<String>, BonaError> {
-    let url = format!("https://huggingface.co/{model_id}/resolve/main/tokenizer_config.json");
+    let url = format!("{base_url}/{model_id}/resolve/main/tokenizer_config.json");
     let resp = client.get(&url).send().await?;
 
     if resp.status() == reqwest::StatusCode::NOT_FOUND

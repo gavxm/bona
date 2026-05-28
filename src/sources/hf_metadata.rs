@@ -27,9 +27,9 @@ struct HfModelInfo {
     card_data: Option<serde_json::Value>,
 }
 
-pub async fn fetch(client: &reqwest::Client, model_id: &str) -> FetchResult {
+pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> FetchResult {
     let start = std::time::Instant::now();
-    let url = format!("https://huggingface.co/api/models/{model_id}");
+    let url = format!("{base_url}/api/models/{model_id}");
 
     let result: Result<HfModelInfo, BonaError> = async {
         let resp = client.get(&url).send().await?;

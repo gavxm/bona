@@ -138,6 +138,23 @@ fn print_text_report(inv: &ModelInvestigation) {
         }
     }
 
+    if let Some(community) = &inv.community {
+        println!("\nCommunity signals:");
+        if let Some(author) = &community.author {
+            println!("  author:       {author}");
+        }
+        if let Some(created) = &community.author_created_at {
+            println!("  account created: {created}");
+        }
+        if let Some(count) = community.author_model_count {
+            println!("  author models: {count}");
+        }
+        if let Some(count) = community.discussion_count {
+            let closed = community.closed_discussion_count.unwrap_or(0);
+            println!("  discussions:  {count} ({closed} closed)");
+        }
+    }
+
     println!("\nEvidence sources:");
     for rec in &inv.sources {
         let status = match &rec.status {
