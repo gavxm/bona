@@ -21,7 +21,7 @@ watch:
 deny:
     cargo deny check
 
-# Investigate a model (e.g. `just run meta-llama/Llama-3.1-8B-Instruct`).
+# Investigate a model (ex. `just run meta-llama/Llama-3.1-8B-Instruct`).
 run model_id:
     cargo run -- investigate {{model_id}}
 
