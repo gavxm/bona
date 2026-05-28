@@ -96,13 +96,15 @@ pub async fn fetch(client: &reqwest::Client, model_id: &str) -> FetchResult {
             Evidence::ModelConfig(evidence),
         )
     } else {
-        // All three failed — report the config.json error since it's the primary file.
+        // All three failed or returned nothing.
         let reason = match config_result {
-            Err(e) => e.to_string(),
-            Ok(None) => "config.json not found".to_string(),
-            Ok(Some(_)) => unreachable!(),
+            Err(e) => format!("config.json fetch failed: {e}"),
+            _ => "config.json not found or inaccessible".to_string(),
         };
-        FetchResult::failed(EvidenceSource::ModelConfig, BonaError::Parse(reason))
+        FetchResult::failed(
+            EvidenceSource::ModelConfig,
+            BonaError::Parse(reason),
+        )
     }
 }
 
