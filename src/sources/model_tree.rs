@@ -45,10 +45,9 @@ fn extract_base_model(card_data: &Option<serde_json::Value>) -> Option<String> {
     let bm = cd.get("base_model")?;
     match bm {
         serde_json::Value::String(s) => Some(s.clone()),
-        serde_json::Value::Array(arr) => arr
-            .first()
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
+        serde_json::Value::Array(arr) => {
+            arr.first().and_then(|v| v.as_str()).map(|s| s.to_string())
+        }
         _ => None,
     }
 }
@@ -67,11 +66,7 @@ pub async fn fetch(client: &reqwest::Client, model_id: &str) -> FetchResult {
     let Some(parent_id) = parent_id else {
         // No declared parent - still a valid result.
         let ms = start.elapsed().as_millis() as u64;
-        return FetchResult::ok(
-            EvidenceSource::ModelTree,
-            ms,
-            Evidence::ModelTree(evidence),
-        );
+        return FetchResult::ok(EvidenceSource::ModelTree, ms, Evidence::ModelTree(evidence));
     };
 
     evidence.parent_id = Some(parent_id.clone());
