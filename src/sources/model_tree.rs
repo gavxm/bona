@@ -51,7 +51,7 @@ pub async fn fetch(
     let mut evidence = ModelTreeEvidence::default();
 
     let Some(parent_id) = declared_base_model else {
-        // No declared parent — still a valid result.
+        // No declared parent - still a valid result.
         let ms = start.elapsed().as_millis() as u64;
         return FetchResult::ok(EvidenceSource::ModelTree, ms, Evidence::ModelTree(evidence));
     };

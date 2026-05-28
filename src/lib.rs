@@ -2,6 +2,7 @@
 //! [`ModelInvestigation`] is the stable contract - treat changes to it as
 //! API changes.
 
+mod findings;
 mod sources;
 
 use serde::{Deserialize, Serialize};
@@ -201,9 +202,8 @@ pub async fn investigate_with_base_url(
 }
 
 /// Compute findings from gathered evidence.
-fn compute_findings(_inv: &mut ModelInvestigation) {
-    // TODO: lineage inconsistency, license inheritance violation,
-    // documentation gap, trust signals, metadata anomaly.
+fn compute_findings(inv: &mut ModelInvestigation) {
+    findings::compute(inv);
 }
 
 #[cfg(test)]
