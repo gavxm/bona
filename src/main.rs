@@ -112,6 +112,32 @@ fn print_text_report(inv: &ModelInvestigation) {
         }
     }
 
+    if let Some(config) = &inv.config {
+        println!("\nModel config:");
+        if !config.architectures.is_empty() {
+            println!("  architecture: {}", config.architectures.join(", "));
+        }
+        if let Some(model_type) = &config.model_type {
+            println!("  model type:   {model_type}");
+        }
+        if let Some(hidden) = config.hidden_size {
+            println!("  hidden size:  {hidden}");
+        }
+        if let Some(layers) = config.num_hidden_layers {
+            println!("  layers:       {layers}");
+        }
+        if let Some(vocab) = config.vocab_size {
+            println!("  vocab size:   {vocab}");
+        }
+        if let Some(size) = config.safetensors_total_size {
+            let gb = size as f64 / 1_000_000_000.0;
+            println!("  weight size:  {gb:.1} GB");
+        }
+        if let Some(tok) = &config.tokenizer_class {
+            println!("  tokenizer:    {tok}");
+        }
+    }
+
     println!("\nEvidence sources:");
     for rec in &inv.sources {
         let status = match &rec.status {
