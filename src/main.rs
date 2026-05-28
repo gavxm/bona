@@ -4,7 +4,8 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use chrono::{DateTime, Utc};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::Shell;
 use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
 
@@ -30,12 +31,17 @@ struct Cli {
 enum Command {
     /// Investigate a HuggingFace model by id (ex. meta-llama/Llama-3.1-8B-Instruct).
     Investigate {
-        /// The HuggingFace model id.
+        /// The HuggingFace model id (ex. meta-llama/Llama-3.1-8B-Instruct).
         model_id: String,
 
         /// Emit the full investigation document as JSON instead of a text report.
         #[arg(long)]
         json: bool,
+    },
+    /// Generate shell completions for bash, zsh, fish, or powershell.
+    Completions {
+        /// The shell to generate completions for.
+        shell: Shell,
     },
 }
 
@@ -44,7 +50,24 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
 
     match cli.command {
+        Command::Completions { shell } => {
+            clap_complete::generate(
+                shell,
+                &mut Cli::command(),
+                "bona",
+                &mut std::io::stdout(),
+            );
+            return ExitCode::SUCCESS;
+        }
         Command::Investigate { model_id, json } => {
+            if !model_id.contains('/') {
+                eprintln!(
+                    "{} model id must be in org/name format (ex. meta-llama/Llama-3.1-8B-Instruct)",
+                    "error:".red().bold()
+                );
+                return ExitCode::FAILURE;
+            }
+
             let spinner = ProgressBar::new_spinner();
             spinner.set_style(
                 ProgressStyle::default_spinner()
