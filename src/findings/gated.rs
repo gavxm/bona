@@ -28,10 +28,9 @@ pub fn check(inv: &mut ModelInvestigation) {
 
     // Is the subject model's config publicly accessible? If yes, the derivative
     // is not gated - but the parent likely is.
-    let config_succeeded = inv
-        .sources
-        .iter()
-        .any(|s| s.source == EvidenceSource::ModelConfig && matches!(s.status, SourceStatus::Ok { .. }));
+    let config_succeeded = inv.sources.iter().any(|s| {
+        s.source == EvidenceSource::ModelConfig && matches!(s.status, SourceStatus::Ok { .. })
+    });
 
     if config_succeeded {
         inv.findings.push(Finding {
@@ -67,8 +66,8 @@ fn is_typically_gated(license: &str) -> bool {
 mod tests {
     use super::*;
     use crate::{
-        DeclaredFacts, EvidenceSource, ModelConfigEvidence, ModelTreeEvidence,
-        SourceRecord, SourceStatus, SCHEMA_VERSION,
+        DeclaredFacts, EvidenceSource, ModelConfigEvidence, ModelTreeEvidence, SCHEMA_VERSION,
+        SourceRecord, SourceStatus,
     };
 
     #[test]

@@ -29,8 +29,7 @@ pub fn check(inv: &mut ModelInvestigation) {
             detail: "Model has weights but does not declare a base model. \
                      Lineage cannot be verified."
                 .into(),
-            reason: "Without a declared parent, license inheritance cannot be checked."
-                .into(),
+            reason: "Without a declared parent, license inheritance cannot be checked.".into(),
             declared_value: None,
             actual_value: Some("(no base_model field)".into()),
             evidence_url: Some(format!("https://huggingface.co/{}", d.model_id)),
