@@ -42,7 +42,7 @@ export function CommunityTab() {
             href={authorUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-accent hover:underline"
+            className="text-sm text-link hover:underline"
           >
             {community.author}
           </a>

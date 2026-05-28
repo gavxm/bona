@@ -6,6 +6,14 @@ import { ConfigTab } from "./ConfigTab";
 import { CommunityTab } from "./CommunityTab";
 import { SourcesTab } from "./SourcesTab";
 
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-block px-1.5 py-0.5 text-[10px] rounded bg-bg-raised text-text-secondary border border-border">
+      {children}
+    </span>
+  );
+}
+
 export function CenterPanel() {
   const { investigation, activeTab } = useInvestigation();
   if (!investigation) return null;
@@ -22,16 +30,15 @@ export function CenterPanel() {
             <h2 className="text-sm font-semibold text-text-primary font-mono">
               {investigation.model_id}
             </h2>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-1.5 mt-1">
               {investigation.declared.pipeline_tag && (
-                <span className="text-[11px] text-text-muted">
-                  {investigation.declared.pipeline_tag}
-                </span>
+                <Chip>{investigation.declared.pipeline_tag}</Chip>
               )}
               {investigation.declared.library && (
-                <span className="text-[11px] text-text-muted">
-                  · {investigation.declared.library}
-                </span>
+                <Chip>{investigation.declared.library}</Chip>
+              )}
+              {investigation.declared.declared_license && (
+                <Chip>{investigation.declared.declared_license}</Chip>
               )}
             </div>
           </div>

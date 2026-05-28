@@ -31,7 +31,7 @@ export function FindingCard({ finding }: { finding: Finding }) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-[11px] text-accent hover:underline mt-1.5 inline-block pl-0.5"
+          className="text-[11px] text-link hover:underline mt-1.5 inline-block pl-0.5"
         >
           evidence ↗
         </a>
