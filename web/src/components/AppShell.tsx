@@ -22,9 +22,9 @@ export function AppShell() {
         </div>
       )}
       {!loading && !error && !investigation && (
-        <div className="flex-1 flex items-center justify-center text-text-muted">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-accent font-bold text-lg mb-2">◁ bona ▷</p>
+            <img src="/logo-dark.svg" alt="bona" className="h-10 w-auto mx-auto mb-3 opacity-60" />
             <p className="text-text-secondary text-sm">select a model to investigate</p>
           </div>
         </div>

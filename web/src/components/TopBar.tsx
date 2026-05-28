@@ -6,14 +6,15 @@ export function TopBar() {
 
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-bg-base">
-      <div className="flex items-center gap-6">
-        <div className="flex items-baseline gap-2">
-          <span className="text-accent font-bold text-sm tracking-wide">◁ bona ▷</span>
-          <span className="text-text-muted text-[10px] hidden sm:inline">provenance explorer</span>
+      <div className="flex items-center gap-5">
+        <div className="flex items-center gap-1.5">
+          <img src="/logo-dark.svg" alt="bona" className="h-15 w-auto" />
+          <span className="text-text-primary font-semibold text-base tracking-tight">bona</span>
+          <span className="text-text-muted text-[12px] ml-2">provenance explorer</span>
         </div>
         {investigation && (
           <>
-            <span className="text-text-muted text-[10px]">│</span>
+            <span className="text-border text-xs">│</span>
             <span className="text-text-secondary text-xs font-mono">
               {investigation.model_id}
             </span>
