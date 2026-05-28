@@ -92,6 +92,26 @@ fn print_text_report(inv: &ModelInvestigation) {
         println!("  tags:        {}", inv.declared.tags.join(", "));
     }
 
+    if let Some(lineage) = &inv.lineage {
+        println!("\nLineage:");
+        if let Some(parent) = &lineage.parent_id {
+            let status = match lineage.parent_exists {
+                Some(true) => "",
+                Some(false) => " (not found on HF)",
+                None => " (not checked)",
+            };
+            println!("  parent:      {parent}{status}");
+            if let Some(license) = &lineage.parent_license {
+                println!("  parent license: {license}");
+            }
+        } else {
+            println!("  parent:      (none declared)");
+        }
+        if !lineage.siblings.is_empty() {
+            println!("  siblings:    {}", lineage.siblings.join(", "));
+        }
+    }
+
     println!("\nEvidence sources:");
     for rec in &inv.sources {
         let status = match &rec.status {
