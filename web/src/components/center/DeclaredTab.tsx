@@ -36,7 +36,7 @@ export function DeclaredTab() {
             {visibleTags.map((tag) => (
               <span
                 key={tag}
-                className="inline-block px-1.5 py-0.5 text-[11px] rounded bg-bg-raised text-text-muted border border-border"
+                className="inline-block px-1.5 py-0.5 text-[11px] rounded bg-bg-raised text-text-secondary border border-border"
               >
                 {tag}
               </span>
