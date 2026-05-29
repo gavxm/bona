@@ -37,3 +37,7 @@ insta = { version = "1.47.2", features = ["json"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "test-util"] }
 wiremock = "0.6.5"
 
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
