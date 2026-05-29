@@ -75,7 +75,7 @@ cd web && npm install && npm run dev
 Add provenance checks to your CI pipeline:
 
 ```yaml
-- uses: gavxm/bona@main
+- uses: gavxm/bona@v0.3.0
   with:
     models: |
       meta-llama/Llama-3.1-8B-Instruct

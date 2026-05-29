@@ -16,7 +16,7 @@ inputs:
     description: 'HuggingFace API token for gated models'
     required: false
   version:
-    description: 'bona version to install (ex. 0.2.0). Defaults to latest.'
+    description: 'bona version to install (ex. 0.3.0). Defaults to latest.'
     required: false
     default: ''
 
@@ -37,10 +37,10 @@ runs:
         if [ -n "$BONA_VERSION" ]; then
           TAG="v${BONA_VERSION}"
         else
-          TAG=$(curl -sI https://github.com/gavxm/bona/releases/latest | grep -i '^location:' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+          TAG=$(curl -s https://api.github.com/repos/gavxm/bona/releases/latest | jq -r '.tag_name')
         fi
 
-        if [ -z "$TAG" ]; then
+        if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
           echo "::error::Could not determine bona version"
           exit 1
         fi
@@ -55,15 +55,15 @@ runs:
           Darwin-x86_64)  TARGET="x86_64-apple-darwin" ;;
           Darwin-arm64)   TARGET="aarch64-apple-darwin" ;;
           *)
-            echo "::error::Unsupported platform: ${OS}-${ARCH}"
+            echo "::error::Unsupported platform: ${OS}-${ARCH}. Windows users: download from GitHub Releases."
             exit 1
             ;;
         esac
 
-        # Download and extract.
-        URL="https://github.com/gavxm/bona/releases/download/${TAG}/bona-${TARGET}.tar.gz"
+        # Download and extract binary.
+        URL="https://github.com/gavxm/bona/releases/download/${TAG}/bona-${TARGET}.tar.xz"
         echo "Downloading bona ${TAG} for ${TARGET}..."
-        curl -sL "$URL" | tar xz -C /usr/local/bin
+        curl -sfL "$URL" | tar xJ -C /usr/local/bin bona
         chmod +x /usr/local/bin/bona
         echo "bona $(bona --version) installed"
 
