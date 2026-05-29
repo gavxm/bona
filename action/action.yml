@@ -30,14 +30,16 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/bona
-        key: bona-${{ inputs.version || 'latest' }}-${{ runner.os }}
+        key: bona-${{ inputs.version || 'latest' }}-${{ runner.os }}-${{ hashFiles('action/action.yml') }}
 
     - name: Install bona
       shell: bash
+      env:
+        BONA_VERSION: ${{ inputs.version }}
       run: |
         if ! command -v bona &> /dev/null; then
-          if [ -n "${{ inputs.version }}" ]; then
-            cargo install bona --locked --version "${{ inputs.version }}"
+          if [ -n "$BONA_VERSION" ]; then
+            cargo install bona --locked --version "$BONA_VERSION"
           else
             cargo install bona --locked
           fi
