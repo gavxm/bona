@@ -23,27 +23,49 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-
-    - name: Cache bona binary
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/bona
-        key: bona-${{ inputs.version || 'latest' }}-${{ runner.os }}-${{ hashFiles('action/action.yml') }}
-
     - name: Install bona
       shell: bash
       env:
         BONA_VERSION: ${{ inputs.version }}
       run: |
-        if ! command -v bona &> /dev/null; then
-          if [ -n "$BONA_VERSION" ]; then
-            cargo install bona --locked --version "$BONA_VERSION"
-          else
-            cargo install bona --locked
-          fi
+        if command -v bona &> /dev/null; then
+          echo "bona already installed"
+          exit 0
         fi
+
+        # Determine version tag.
+        if [ -n "$BONA_VERSION" ]; then
+          TAG="v${BONA_VERSION}"
+        else
+          TAG=$(curl -sI https://github.com/gavxm/bona/releases/latest | grep -i '^location:' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+        fi
+
+        if [ -z "$TAG" ]; then
+          echo "::error::Could not determine bona version"
+          exit 1
+        fi
+
+        # Determine platform.
+        OS=$(uname -s)
+        ARCH=$(uname -m)
+
+        case "${OS}-${ARCH}" in
+          Linux-x86_64)   TARGET="x86_64-unknown-linux-gnu" ;;
+          Linux-aarch64)  TARGET="aarch64-unknown-linux-gnu" ;;
+          Darwin-x86_64)  TARGET="x86_64-apple-darwin" ;;
+          Darwin-arm64)   TARGET="aarch64-apple-darwin" ;;
+          *)
+            echo "::error::Unsupported platform: ${OS}-${ARCH}"
+            exit 1
+            ;;
+        esac
+
+        # Download and extract.
+        URL="https://github.com/gavxm/bona/releases/download/${TAG}/bona-${TARGET}.tar.gz"
+        echo "Downloading bona ${TAG} for ${TARGET}..."
+        curl -sL "$URL" | tar xz -C /usr/local/bin
+        chmod +x /usr/local/bin/bona
+        echo "bona $(bona --version) installed"
 
     - name: Run investigations
       shell: bash
