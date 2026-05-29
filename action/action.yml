@@ -1,0 +1,54 @@
+name: 'bona provenance check'
+description: 'Investigate HuggingFace model provenance and flag license/lineage issues'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  models:
+    description: 'Newline-separated list of HuggingFace model IDs to investigate'
+    required: true
+  fail-on-high:
+    description: 'Fail the workflow if any HIGH severity finding is detected'
+    required: false
+    default: 'false'
+  hf-token:
+    description: 'HuggingFace API token for gated models'
+    required: false
+  version:
+    description: 'bona version to install (ex. 0.2.0). Defaults to latest.'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache bona binary
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/bona
+        key: bona-${{ inputs.version || 'latest' }}-${{ runner.os }}-${{ hashFiles('action/action.yml') }}
+
+    - name: Install bona
+      shell: bash
+      env:
+        BONA_VERSION: ${{ inputs.version }}
+      run: |
+        if ! command -v bona &> /dev/null; then
+          if [ -n "$BONA_VERSION" ]; then
+            cargo install bona --locked --version "$BONA_VERSION"
+          else
+            cargo install bona --locked
+          fi
+        fi
+
+    - name: Run investigations
+      shell: bash
+      env:
+        HF_TOKEN: ${{ inputs.hf-token }}
+        BONA_MODELS: ${{ inputs.models }}
+        BONA_FAIL_ON_HIGH: ${{ inputs.fail-on-high }}
+      run: bash ${{ github.action_path }}/summary.sh

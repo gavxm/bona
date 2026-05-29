@@ -70,6 +70,23 @@ Run locally:
 cd web && npm install && npm run dev
 ```
 
+## GitHub Action
+
+Add provenance checks to your CI pipeline:
+
+```yaml
+- uses: gavxm/bona@main
+  with:
+    models: |
+      meta-llama/Llama-3.1-8B-Instruct
+      ruslanmv/Medical-Llama3-8B
+    fail-on-high: true
+    hf-token: ${{ secrets.HF_TOKEN }}
+```
+
+The Action investigates each model and posts a summary to the job output.
+Set `fail-on-high: true` to block merges when HIGH severity findings exist.
+
 ## How It Works
 
 Bona fetches evidence from four HuggingFace sources concurrently, then runs
