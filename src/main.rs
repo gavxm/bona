@@ -8,8 +8,10 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::Shell;
 use owo_colors::OwoColorize;
 
-use bona::output::{sarif, text};
+use bona::output::sarif;
 use bona::{ModelInvestigation, Severity};
+
+mod render;
 
 #[derive(Parser)]
 #[command(
@@ -134,7 +136,7 @@ async fn run_investigate(
             } else if json {
                 println!("{}", serde_json::to_string_pretty(&inv).unwrap());
             } else {
-                text::print_text_report(&inv, elapsed);
+                render::print_text_report(&inv, elapsed);
             }
             if fail_on_high && inv.findings.iter().any(|f| f.severity == Severity::High) {
                 ExitCode::from(1)
@@ -256,7 +258,7 @@ async fn run_batch(
     if json {
         println!("{}", serde_json::to_string_pretty(&investigations).unwrap());
     } else {
-        text::print_batch_report(&investigations, errors);
+        render::print_batch_report(&investigations, errors);
     }
 
     if fail_on_high && has_high {

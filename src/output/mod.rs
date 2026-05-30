@@ -1,6 +1,3 @@
-//! Output formatting for investigation results. Text reports, SARIF, and
-//! shared formatting utilities.
+//! Output formatting for investigation results.
 
-pub mod format;
 pub mod sarif;
-pub mod text;

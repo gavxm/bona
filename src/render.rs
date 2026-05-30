@@ -1,16 +1,82 @@
-//! Terminal text output for investigation reports and batch results.
+//! Terminal text rendering for CLI output. Binary-only; not part of the
+//! library API.
 
+use chrono::{DateTime, Utc};
 use owo_colors::OwoColorize;
 
-use crate::{ModelInvestigation, Severity, SourceStatus};
-
-use super::format::{format_date, format_number, hyperlink, wrap_text};
+use bona::{ModelInvestigation, Severity, SourceStatus};
 
 const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
 const MAX_TAGS: usize = 5;
 
-/// Render a colored severity badge for terminal output.
-pub fn severity_badge(severity: Severity) -> String {
+// --- Formatting utilities ---
+
+/// OSC 8 hyperlink for terminals that support it.
+fn hyperlink(url: &str, text: &str) -> String {
+    format!("\x1b]8;;{url}\x1b\\{text}\x1b]8;;\x1b\\")
+}
+
+/// Format an ISO 8601 timestamp as "Mon YYYY (N years/months ago)".
+fn format_date(iso: &str) -> String {
+    let Ok(dt) = DateTime::parse_from_rfc3339(iso) else {
+        return iso.to_string();
+    };
+    let now = Utc::now();
+    let age = now.signed_duration_since(dt.to_utc());
+    let days = age.num_days();
+
+    let month = dt.format("%b %Y");
+    let ago = if days >= 365 {
+        let years = days / 365;
+        format!("{years} year{}", if years == 1 { "" } else { "s" })
+    } else if days >= 30 {
+        let months = days / 30;
+        format!("{months} month{}", if months == 1 { "" } else { "s" })
+    } else {
+        format!("{days} day{}", if days == 1 { "" } else { "s" })
+    };
+
+    format!("{month} ({ago} ago)")
+}
+
+/// Format a number with comma separators.
+fn format_number(n: u64) -> String {
+    let s = n.to_string();
+    let mut result = String::new();
+    for (i, c) in s.chars().rev().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            result.push(',');
+        }
+        result.push(c);
+    }
+    result.chars().rev().collect()
+}
+
+/// Wrap text at word boundaries to fit within `width` columns.
+fn wrap_text(text: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current = String::new();
+
+    for word in text.split_whitespace() {
+        if current.is_empty() {
+            current = word.to_string();
+        } else if current.len() + 1 + word.len() > width {
+            lines.push(current);
+            current = word.to_string();
+        } else {
+            current.push(' ');
+            current.push_str(word);
+        }
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines
+}
+
+// --- Report rendering ---
+
+fn severity_badge(severity: Severity) -> String {
     match severity {
         Severity::High => format!("{}", " HIGH ".on_red().white().bold()),
         Severity::Medium => format!("{}", " MEDIUM ".on_yellow().black().bold()),
@@ -245,7 +311,7 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     if has_failures && std::env::var_os("HF_TOKEN").is_none() {
         println!(
             "  {}",
-            "hint: some sources failed — this model may be gated. set HF_TOKEN for full access."
+            "hint: some sources failed - this model may be gated. set HF_TOKEN for full access."
                 .yellow()
         );
     }
