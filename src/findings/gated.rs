@@ -12,8 +12,8 @@ pub fn check(inv: &mut ModelInvestigation) {
         None => return,
     };
 
-    let parent_id = match &lineage.parent_id {
-        Some(id) => id.as_str(),
+    let parent_id = match lineage.parent_id() {
+        Some(id) => id,
         None => return,
     };
 
@@ -28,16 +28,12 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 
     // Is the parent gated? Use the direct field, fall back to license heuristic.
-    let parent_is_gated = match lineage.parent_gated.as_deref() {
+    let parent_is_gated = match lineage.parent_gated() {
         Some("auto" | "manual" | "true") => true,
         Some(_) => false,
-        None => {
-            // No direct field - fall back to license heuristic.
-            lineage
-                .parent_license
-                .as_deref()
-                .is_some_and(is_typically_gated)
-        }
+        None => lineage
+            .parent_license()
+            .is_some_and(is_typically_gated),
     };
 
     if !parent_is_gated {
@@ -52,8 +48,7 @@ pub fn check(inv: &mut ModelInvestigation) {
 
     if config_succeeded {
         let parent_license_info = lineage
-            .parent_license
-            .as_deref()
+            .parent_license()
             .map(|l| format!(" (license: {l})"))
             .unwrap_or_default();
         inv.findings.push(Finding {
@@ -88,8 +83,8 @@ fn is_typically_gated(license: &str) -> bool {
 mod tests {
     use super::*;
     use crate::{
-        DeclaredFacts, EvidenceSource, ModelConfigEvidence, ModelTreeEvidence, SCHEMA_VERSION,
-        SourceRecord, SourceStatus,
+        DeclaredFacts, EvidenceSource, LineageEvidence, LineageNode, ModelConfigEvidence,
+        RelationKind, SCHEMA_VERSION, SourceRecord, SourceStatus,
     };
 
     #[test]
@@ -144,11 +139,15 @@ mod tests {
                 gated: child_gated.map(|s| s.to_string()),
                 ..Default::default()
             },
-            lineage: Some(ModelTreeEvidence {
-                parent_id: Some("test/parent".into()),
-                parent_license: parent_license.map(|s| s.to_string()),
-                parent_exists: Some(true),
-                parent_gated: parent_gated.map(|s| s.to_string()),
+            lineage: Some(LineageEvidence {
+                chain: vec![LineageNode {
+                    model_id: "test/parent".into(),
+                    license: parent_license.map(|s| s.to_string()),
+                    relation: RelationKind::Unknown,
+                    exists: true,
+                    gated: parent_gated.map(|s| s.to_string()),
+                    depth: 0,
+                }],
                 siblings: vec![],
             }),
             config: if config_ok {

@@ -82,7 +82,7 @@ pub fn check(inv: &mut ModelInvestigation) {
     let parent_license = match inv
         .lineage
         .as_ref()
-        .and_then(|l| l.parent_license.as_deref())
+        .and_then(|l| l.parent_license())
     {
         Some(l) => l,
         None => return, // No parent or no parent license - can't cross-reference.
@@ -91,7 +91,7 @@ pub fn check(inv: &mut ModelInvestigation) {
     let parent_id = inv
         .lineage
         .as_ref()
-        .and_then(|l| l.parent_id.as_deref())
+        .and_then(|l| l.parent_id())
         .unwrap_or("unknown");
 
     // Same license - no issue.
@@ -225,7 +225,7 @@ mod tests {
     }
 
     fn make_inv(child_license: &str, parent_license: &str) -> ModelInvestigation {
-        use crate::{DeclaredFacts, ModelTreeEvidence, SCHEMA_VERSION};
+        use crate::{DeclaredFacts, LineageEvidence, LineageNode, RelationKind, SCHEMA_VERSION};
 
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
@@ -237,11 +237,15 @@ mod tests {
                 declared_base_model: Some("test/parent".into()),
                 ..Default::default()
             },
-            lineage: Some(ModelTreeEvidence {
-                parent_id: Some("test/parent".into()),
-                parent_license: Some(parent_license.into()),
-                parent_exists: Some(true),
-                parent_gated: None,
+            lineage: Some(LineageEvidence {
+                chain: vec![LineageNode {
+                    model_id: "test/parent".into(),
+                    license: Some(parent_license.into()),
+                    relation: RelationKind::Unknown,
+                    exists: true,
+                    gated: None,
+                    depth: 0,
+                }],
                 siblings: vec![],
             }),
             config: None,

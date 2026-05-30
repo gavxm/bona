@@ -146,7 +146,7 @@ pub struct DeclaredFacts {
 pub use sources::RelationKind;
 pub use sources::community::CommunityEvidence;
 pub use sources::model_config::ModelConfigEvidence;
-pub use sources::model_tree::ModelTreeEvidence;
+pub use sources::model_tree::{LineageEvidence, LineageNode};
 
 /// The investigation document. CLI prints it, web UI renders it, gallery
 /// caches it as JSON.
@@ -156,7 +156,7 @@ pub struct ModelInvestigation {
     pub model_id: String,
     pub investigated_at: String,
     pub declared: DeclaredFacts,
-    pub lineage: Option<ModelTreeEvidence>,
+    pub lineage: Option<LineageEvidence>,
     pub config: Option<ModelConfigEvidence>,
     pub community: Option<CommunityEvidence>,
     pub sources: Vec<SourceRecord>,

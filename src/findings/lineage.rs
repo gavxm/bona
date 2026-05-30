@@ -62,12 +62,12 @@ pub fn check(inv: &mut ModelInvestigation) {
         None => return,
     };
 
-    let parent_id = match lineage.parent_id.as_deref() {
+    let parent_id = match lineage.parent_id() {
         Some(id) => id,
         None => return,
     };
 
-    let parent_exists = lineage.parent_exists;
+    let parent_exists = lineage.parent_exists();
 
     let model_type = match inv.config.as_ref().and_then(|c| c.model_type.as_deref()) {
         Some(mt) => mt,
@@ -156,7 +156,10 @@ mod tests {
     }
 
     fn make_inv(parent_id: &str, model_type: &str) -> ModelInvestigation {
-        use crate::{DeclaredFacts, ModelConfigEvidence, ModelTreeEvidence, SCHEMA_VERSION};
+        use crate::{
+            DeclaredFacts, LineageEvidence, LineageNode, ModelConfigEvidence, RelationKind,
+            SCHEMA_VERSION,
+        };
 
         ModelInvestigation {
             schema_version: SCHEMA_VERSION,
@@ -167,11 +170,15 @@ mod tests {
                 declared_base_model: Some(parent_id.into()),
                 ..Default::default()
             },
-            lineage: Some(ModelTreeEvidence {
-                parent_id: Some(parent_id.into()),
-                parent_license: None,
-                parent_exists: Some(true),
-                parent_gated: None,
+            lineage: Some(LineageEvidence {
+                chain: vec![LineageNode {
+                    model_id: parent_id.into(),
+                    license: None,
+                    relation: RelationKind::Unknown,
+                    exists: true,
+                    gated: None,
+                    depth: 0,
+                }],
                 siblings: vec![],
             }),
             config: Some(ModelConfigEvidence {

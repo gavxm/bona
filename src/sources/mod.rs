@@ -116,7 +116,7 @@ pub struct FetchResult {
 #[allow(dead_code)] // Variants constructed as sources are implemented.
 pub enum Evidence {
     HfMetadata(hf_metadata::HfMetadataEvidence),
-    ModelTree(model_tree::ModelTreeEvidence),
+    ModelTree(model_tree::LineageEvidence),
     ModelConfig(model_config::ModelConfigEvidence),
     Community(community::CommunityEvidence),
 }

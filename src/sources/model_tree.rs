@@ -5,22 +5,52 @@ use serde::{Deserialize, Serialize};
 
 use crate::{BonaError, EvidenceSource};
 
-use super::{Evidence, FetchResult};
+use super::{Evidence, FetchResult, RelationKind};
 
-/// Evidence about the model's lineage relationships.
+/// Maximum ancestor depth to walk.
+pub const MAX_LINEAGE_DEPTH: u32 = 4;
+
+/// A single node in the lineage chain.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LineageNode {
+    pub model_id: String,
+    pub license: Option<String>,
+    pub relation: RelationKind,
+    pub exists: bool,
+    pub gated: Option<String>,
+    /// 0 = direct parent, 1 = grandparent, etc.
+    pub depth: u32,
+}
+
+/// Multi-hop lineage evidence.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ModelTreeEvidence {
-    /// The declared base/parent model id.
-    pub parent_id: Option<String>,
-    /// The parent model's license.
-    pub parent_license: Option<String>,
-    /// Whether the parent model id resolved (exists on HF).
-    pub parent_exists: Option<bool>,
-    /// Parent's access control status: "false", "auto", or "manual".
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_gated: Option<String>,
-    /// Top sibling models, by downloads.
+pub struct LineageEvidence {
+    /// Ancestor chain, ordered from direct parent to most distant ancestor.
+    pub chain: Vec<LineageNode>,
+    /// Top sibling models (other derivatives of the same direct parent).
     pub siblings: Vec<String>,
+}
+
+impl LineageEvidence {
+    /// Direct parent model id, if any.
+    pub fn parent_id(&self) -> Option<&str> {
+        self.chain.first().map(|n| n.model_id.as_str())
+    }
+
+    /// Direct parent license, if any.
+    pub fn parent_license(&self) -> Option<&str> {
+        self.chain.first().and_then(|n| n.license.as_deref())
+    }
+
+    /// Whether the direct parent exists on HF.
+    pub fn parent_exists(&self) -> Option<bool> {
+        self.chain.first().map(|n| n.exists)
+    }
+
+    /// Direct parent gated status, if any.
+    pub fn parent_gated(&self) -> Option<&str> {
+        self.chain.first().and_then(|n| n.gated.as_deref())
+    }
 }
 
 /// Minimal response shape for the parent model lookup.
@@ -47,39 +77,53 @@ fn extract_license(card_data: &Option<serde_json::Value>) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// Fetch model tree evidence.
+/// Fetch lineage evidence: walk the base model chain up to MAX_LINEAGE_DEPTH
+/// ancestors, fetching siblings only for the direct parent.
 pub async fn fetch(
     client: &reqwest::Client,
     base_url: &str,
     model_id: &str,
     declared_base_model: Option<&str>,
+    relation: RelationKind,
 ) -> FetchResult {
     let start = std::time::Instant::now();
 
-    let mut evidence = ModelTreeEvidence::default();
+    let mut evidence = LineageEvidence::default();
 
     let Some(parent_id) = declared_base_model else {
-        // No declared parent - still a valid result.
         let ms = start.elapsed().as_millis() as u64;
         return FetchResult::ok(EvidenceSource::ModelTree, ms, Evidence::ModelTree(evidence));
     };
 
-    evidence.parent_id = Some(parent_id.to_string());
-
-    // Fetch parent info and siblings concurrently.
+    // First hop: fetch parent info and siblings concurrently.
     let (parent_result, siblings_result) = tokio::join!(
         fetch_parent_info(client, base_url, parent_id),
         fetch_siblings(client, base_url, model_id, parent_id),
     );
 
+    let mut next_card_data: Option<serde_json::Value> = None;
+
     match parent_result {
-        Ok((exists, license, gated)) => {
-            evidence.parent_exists = Some(exists);
-            evidence.parent_license = license;
-            evidence.parent_gated = gated;
+        Ok((exists, license, gated, card_data)) => {
+            evidence.chain.push(LineageNode {
+                model_id: parent_id.to_string(),
+                license,
+                relation,
+                exists,
+                gated,
+                depth: 0,
+            });
+            next_card_data = card_data;
         }
         Err(_) => {
-            evidence.parent_exists = Some(false);
+            evidence.chain.push(LineageNode {
+                model_id: parent_id.to_string(),
+                license: None,
+                relation,
+                exists: false,
+                gated: None,
+                depth: 0,
+            });
         }
     }
 
@@ -87,20 +131,67 @@ pub async fn fetch(
         evidence.siblings = siblings;
     }
 
+    // Walk subsequent hops sequentially.
+    let mut seen = std::collections::HashSet::new();
+    seen.insert(model_id.to_string());
+    seen.insert(parent_id.to_string());
+
+    for depth in 1..MAX_LINEAGE_DEPTH {
+        let ancestors = match &next_card_data {
+            Some(cd) => super::extract_base_models(&Some(cd.clone())),
+            None => break,
+        };
+
+        let ancestor = match ancestors.first() {
+            Some(a) => a,
+            None => break,
+        };
+
+        if seen.contains(&ancestor.model_id) {
+            break; // Cycle detected.
+        }
+        seen.insert(ancestor.model_id.clone());
+
+        match fetch_parent_info(client, base_url, &ancestor.model_id).await {
+            Ok((exists, license, gated, card_data)) => {
+                evidence.chain.push(LineageNode {
+                    model_id: ancestor.model_id.clone(),
+                    license,
+                    relation: ancestor.relation,
+                    exists,
+                    gated,
+                    depth,
+                });
+                next_card_data = card_data;
+            }
+            Err(_) => {
+                evidence.chain.push(LineageNode {
+                    model_id: ancestor.model_id.clone(),
+                    license: None,
+                    relation: ancestor.relation,
+                    exists: false,
+                    gated: None,
+                    depth,
+                });
+                break;
+            }
+        }
+    }
+
     let ms = start.elapsed().as_millis() as u64;
     FetchResult::ok(EvidenceSource::ModelTree, ms, Evidence::ModelTree(evidence))
 }
 
-/// Fetch the parent model's metadata to get its license and gated status.
+/// Fetch the parent model's metadata. Returns (exists, license, gated, card_data).
 async fn fetch_parent_info(
     client: &reqwest::Client,
     base_url: &str,
     parent_id: &str,
-) -> Result<(bool, Option<String>, Option<String>), BonaError> {
+) -> Result<(bool, Option<String>, Option<String>, Option<serde_json::Value>), BonaError> {
     let url = format!("{base_url}/api/models/{parent_id}");
     let resp = client.get(&url).send().await?;
     if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        return Ok((false, None, None));
+        return Ok((false, None, None, None));
     }
     let resp = resp.error_for_status()?;
     let info: HfModelInfo = resp
@@ -108,7 +199,8 @@ async fn fetch_parent_info(
         .await
         .map_err(|e| BonaError::Parse(e.to_string()))?;
     let gated = info.gated.as_ref().and_then(super::parse_gated);
-    Ok((true, extract_license(&info.card_data), gated))
+    let license = extract_license(&info.card_data);
+    Ok((true, license, gated, info.card_data))
 }
 
 /// Find sibling models (other finetunings of the same parent).

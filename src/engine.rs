@@ -1,7 +1,7 @@
 //! Investigation orchestration. Builds an HTTP client, fetches evidence from
 //! all sources, and runs the findings engine.
 
-use crate::sources::Evidence;
+use crate::sources::{Evidence, RelationKind};
 use crate::{BonaError, ModelInvestigation, findings, sources};
 
 const HF_BASE_URL: &str = "https://huggingface.co";
@@ -36,18 +36,19 @@ pub async fn investigate_with_base_url(
     // Phase 1: fetch HF metadata (other sources depend on its results).
     let hf = sources::hf_metadata::fetch(&client, base_url, model_id).await;
     inv.sources.push(hf.record);
-    let base_model = if let Some(Evidence::HfMetadata(e)) = hf.evidence {
+    let (base_model, relation) = if let Some(Evidence::HfMetadata(e)) = hf.evidence {
         let bm = e.declared.declared_base_model.clone();
+        let rel = e.declared.base_model_relation.unwrap_or(RelationKind::Unknown);
         inv.declared = e.declared;
-        bm
+        (bm, rel)
     } else {
-        None
+        (None, RelationKind::Unknown)
     };
 
     // Phase 2: remaining sources fan out concurrently.
     let author = model_id.split_once('/').map(|(org, _)| org);
     let (tree, config, community) = tokio::join!(
-        sources::model_tree::fetch(&client, base_url, model_id, base_model.as_deref()),
+        sources::model_tree::fetch(&client, base_url, model_id, base_model.as_deref(), relation),
         sources::model_config::fetch(&client, base_url, model_id),
         sources::community::fetch(&client, base_url, model_id, author),
     );
