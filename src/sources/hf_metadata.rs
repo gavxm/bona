@@ -61,8 +61,16 @@ pub async fn fetch(
 
     let result: Result<HfModelInfo, InvestigationError> = async {
         let resp = client.get(&url).send().await?;
-        if resp.status() == reqwest::StatusCode::NOT_FOUND {
-            return Err(InvestigationError::ModelNotFound(model_id.to_string()));
+        match resp.status() {
+            reqwest::StatusCode::NOT_FOUND => {
+                return Err(InvestigationError::ModelNotFound(model_id.to_string()));
+            }
+            reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN => {
+                return Err(InvestigationError::Parse(format!(
+                    "access denied for {model_id}. set HF_TOKEN for gated or private models"
+                )));
+            }
+            _ => {}
         }
         let resp = resp.error_for_status()?;
         let info = resp
