@@ -77,19 +77,8 @@ runs:
         HF_TOKEN: ${{ inputs.hf-token }}
         BONA_MODELS: ${{ inputs.models }}
         BONA_FAIL_ON_HIGH: ${{ inputs.fail-on-high }}
+        BONA_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
       run: bash ${{ github.action_path }}/summary.sh
-
-    - name: Generate SARIF
-      if: inputs.upload-sarif == 'true'
-      shell: bash
-      env:
-        HF_TOKEN: ${{ inputs.hf-token }}
-        BONA_MODELS: ${{ inputs.models }}
-      run: |
-        MODELS_FILE=$(mktemp)
-        printf '%s\n' "$BONA_MODELS" | grep -v '^\s*$' > "$MODELS_FILE"
-        bona batch --from "$MODELS_FILE" --sarif > "$RUNNER_TEMP/bona.sarif"
-        rm -f "$MODELS_FILE"
 
     - name: Upload SARIF
       if: inputs.upload-sarif == 'true'

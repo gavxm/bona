@@ -143,6 +143,14 @@ async fn main() -> ExitCode {
             sarif,
             fail_on_high,
         } => {
+            // Hint when reading from stdin interactively.
+            if from == "-" && atty::is(atty::Stream::Stdin) {
+                eprintln!(
+                    "{} reading model ids from stdin (one per line, ctrl-d to finish)",
+                    "hint:".dimmed()
+                );
+            }
+
             let model_ids = match read_model_ids(&from) {
                 Ok(ids) => ids,
                 Err(e) => {
@@ -160,10 +168,12 @@ async fn main() -> ExitCode {
             let mut has_high = false;
             let mut errors = 0u32;
 
-            for model_id in &model_ids {
+            for (i, model_id) in model_ids.iter().enumerate() {
                 eprintln!(
-                    "{} {}...",
+                    "{} [{}/{}] {}...",
                     "investigating".dimmed(),
+                    i + 1,
+                    model_ids.len(),
                     model_id.cyan()
                 );
 
@@ -187,31 +197,7 @@ async fn main() -> ExitCode {
             } else if json {
                 println!("{}", serde_json::to_string_pretty(&results).unwrap());
             } else {
-                // Text summary table.
-                println!();
-                println!("  {}", "batch results".bold());
-                println!("  {}", "─".repeat(58).dimmed());
-                for inv in &results {
-                    let high = inv.findings.iter().filter(|f| f.severity == Severity::High).count();
-                    let med = inv.findings.iter().filter(|f| f.severity == Severity::Medium).count();
-                    let total = inv.findings.len();
-
-                    let status = if high > 0 {
-                        format!("{} findings ({} high)", total, high).red().to_string()
-                    } else if med > 0 {
-                        format!("{} findings ({} medium)", total, med).yellow().to_string()
-                    } else if total > 0 {
-                        format!("{} findings", total).blue().to_string()
-                    } else {
-                        "clean".green().to_string()
-                    };
-
-                    println!("  {:<40} {}", inv.model_id, status);
-                }
-                if errors > 0 {
-                    println!("  {}", format!("{errors} model(s) failed").red());
-                }
-                println!();
+                print_batch_report(&results, errors);
             }
 
             if fail_on_high && has_high {
@@ -531,6 +517,56 @@ fn print_summary(inv: &ModelInvestigation) {
         "Summary:".bold(),
         parts.join(", ")
     );
+}
+
+fn print_batch_report(results: &[ModelInvestigation], errors: u32) {
+    println!();
+    println!("  {}", "batch results".bold());
+    println!("  {}", "─".repeat(58).dimmed());
+
+    for inv in results {
+        let high = inv
+            .findings
+            .iter()
+            .filter(|f| f.severity == Severity::High)
+            .count();
+        let med = inv
+            .findings
+            .iter()
+            .filter(|f| f.severity == Severity::Medium)
+            .count();
+        let total = inv.findings.len();
+
+        let status = if high > 0 {
+            format!("{total} findings ({high} high)").red().to_string()
+        } else if med > 0 {
+            format!("{total} findings ({med} medium)")
+                .yellow()
+                .to_string()
+        } else if total > 0 {
+            format!("{total} findings").blue().to_string()
+        } else {
+            "clean".green().to_string()
+        };
+
+        println!("  {:<40} {}", inv.model_id, status);
+
+        // Show individual findings.
+        for f in &inv.findings {
+            let badge = match f.severity {
+                Severity::High => "HIGH".red().bold().to_string(),
+                Severity::Medium => "MEDIUM".yellow().bold().to_string(),
+                Severity::Low => "LOW".blue().to_string(),
+                Severity::Info => "INFO".dimmed().to_string(),
+            };
+            println!("    {} {}", badge, f.title);
+        }
+    }
+
+    if errors > 0 {
+        println!("  {}", format!("{errors} model(s) failed").red());
+    }
+    println!();
 }
 
 /// Wrap text at word boundaries to fit within `width` columns.

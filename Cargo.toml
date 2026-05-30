@@ -31,6 +31,7 @@ chrono = { version = "0.4.44", features = ["serde"] }
 owo-colors = { version = "4.3.0", features = ["supports-colors"] }
 indicatif = "0.18.4"
 clap_complete = "4.6.5"
+atty = "0.2.14"
 
 [dev-dependencies]
 insta = { version = "1.47.2", features = ["json"] }

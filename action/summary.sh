@@ -11,7 +11,7 @@ if [ ! -s "$MODELS_FILE" ]; then
   exit 1
 fi
 
-# Run batch investigation and capture JSON.
+# Run batch investigation once and capture JSON.
 BONA_ERR=$(mktemp)
 JSON=$(bona batch --from "$MODELS_FILE" --json 2>"$BONA_ERR") || {
   echo "::warning::Batch investigation failed: $(cat "$BONA_ERR")"
@@ -19,6 +19,12 @@ JSON=$(bona batch --from "$MODELS_FILE" --json 2>"$BONA_ERR") || {
   rm -f "$MODELS_FILE" "$BONA_ERR"
   exit 1
 }
+
+# If SARIF upload is requested, run sarif output from the same models file.
+if [ "${BONA_UPLOAD_SARIF:-false}" = "true" ]; then
+  bona batch --from "$MODELS_FILE" --sarif > "${RUNNER_TEMP}/bona.sarif" 2>/dev/null || true
+fi
+
 rm -f "$MODELS_FILE" "$BONA_ERR"
 
 # Build summary table from the JSON array.
@@ -61,7 +67,7 @@ for i in $(seq 0 $((NUM_MODELS - 1))); do
 
   if [ "$FINDING_COUNT" -gt 0 ]; then
     DETAIL_SECTIONS+="\n### $MODEL_ID\n\n"
-    DETAIL_SECTIONS+=$(printf '%s' "$JSON" | jq -r ".[$i].findings[] | \"- **\\(.severity | ascii_upcase)** \\(.title) - \\(.detail)\"")
+    DETAIL_SECTIONS+=$(printf '%s' "$JSON" | jq -r ".[$i].findings[] | \"- **\\(.severity | ascii_upcase)** \\(.title) — \\(.detail)\"")
     DETAIL_SECTIONS+="\n"
   fi
 done
