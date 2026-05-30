@@ -23,11 +23,11 @@ deny:
 
 # Investigate a model (ex. `just inv meta-llama/Llama-3.1-8B-Instruct`).
 inv model_id:
-    cargo build --quiet && ./target/debug/bona investigate {{model_id}} || true
+    cargo build --quiet && ./target/debug/yurai investigate {{model_id}} || true
 
 # Investigate a model and output JSON.
 inv-json model_id:
-    cargo build --quiet && ./target/debug/bona investigate {{model_id}} --json
+    cargo build --quiet && ./target/debug/yurai investigate {{model_id}} --json
 
 # Review pending insta snapshots.
 snapshots:
@@ -43,7 +43,7 @@ web-build:
 
 # Pre-bake an investigation JSON for the web gallery.
 web-prebake model_id:
-    cargo build --quiet && ./target/debug/bona investigate {{model_id}} --json > web/public/investigations/$(echo {{model_id}} | tr '/' '--').json
+    cargo build --quiet && ./target/debug/yurai investigate {{model_id}} --json > web/public/investigations/$(echo {{model_id}} | tr '/' '--').json
     just web-gallery
 
 # Regenerate the gallery manifest from pre-baked JSONs.

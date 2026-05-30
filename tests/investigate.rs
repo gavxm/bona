@@ -91,7 +91,7 @@ async fn populates_all_sources() {
         .mount(&server)
         .await;
 
-    let inv = bona::investigate_with_base_url("testorg/testmodel", &base)
+    let inv = yurai::investigate_with_base_url("testorg/testmodel", &base)
         .await
         .expect("investigation should succeed");
 
@@ -156,7 +156,7 @@ async fn populates_all_sources() {
     assert_eq!(inv.sources.len(), 4);
     for source in &inv.sources {
         assert!(
-            matches!(source.status, bona::SourceStatus::Ok { .. }),
+            matches!(source.status, yurai::SourceStatus::Ok { .. }),
             "source {:?} should be Ok, got {:?}",
             source.source,
             source.status

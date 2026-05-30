@@ -1,17 +1,17 @@
-# Bona
+# Yurai
 
 > Know where your models came from.
 
-Bona investigates the provenance of HuggingFace models. It traces lineage,
+Yurai investigates the provenance of HuggingFace models. It traces lineage,
 cross-references licenses, and flags the gaps between what a model *claims*
 and what the evidence actually shows.
 
-Most tools show you metadata. Bona shows you where the metadata contradicts
+Most tools show you metadata. Yurai shows you where the metadata contradicts
 itself.
 
-![bona web UI](docs/UI.png)
+![yurai web UI](docs/UI.png)
 
-**[Live demo](https://gavxm.github.io/bona)** · **[Install](#install)**
+**[Live demo](https://gavxm.github.io/yurai)** · **[Install](#install)**
 
 ## Findings
 
@@ -36,43 +36,43 @@ the raw declared-vs-actual values that triggered it.
 ## Install
 
 ```sh
-cargo install bona
+cargo install yurai
 ```
 
 ## Usage
 
 ```sh
 # Investigate a model
-bona investigate meta-llama/Llama-3.1-8B-Instruct
+yurai investigate meta-llama/Llama-3.1-8B-Instruct
 
 # JSON output
-bona investigate ruslanmv/Medical-Llama3-8B --json
+yurai investigate ruslanmv/Medical-Llama3-8B --json
 
 # SARIF output (for GitHub code scanning)
-bona investigate ruslanmv/Medical-Llama3-8B --sarif
+yurai investigate ruslanmv/Medical-Llama3-8B --sarif
 
 # Fail CI on high-severity findings
-bona investigate some/model --fail-on-high
+yurai investigate some/model --fail-on-high
 ```
 
 Batch mode - investigate multiple models from a file or stdin:
 
 ```sh
 # From a file
-bona batch --from models.txt
+yurai batch --from models.txt
 
 # From stdin
-echo -e "microsoft/phi-2\nruslanmv/Medical-Llama3-8B" | bona batch
+echo -e "microsoft/phi-2\nruslanmv/Medical-Llama3-8B" | yurai batch
 
 # Batch with SARIF output
-bona batch --from models.txt --sarif results.sarif
+yurai batch --from models.txt --sarif results.sarif
 ```
 
 Set `HF_TOKEN` to access gated models:
 
 ```sh
 export HF_TOKEN=hf_...
-bona investigate meta-llama/Llama-3.1-8B-Instruct
+yurai investigate meta-llama/Llama-3.1-8B-Instruct
 ```
 
 ## Web Explorer
@@ -81,7 +81,7 @@ Three-panel investigation UI: lineage graph, tabbed evidence details, and
 findings with declared-vs-actual diffs. Click a finding to highlight the
 related evidence across all panels.
 
-**[gavxm.github.io/bona](https://gavxm.github.io/bona)**
+**[gavxm.github.io/yurai](https://gavxm.github.io/yurai)**
 
 Run locally:
 
@@ -94,7 +94,7 @@ cd web && npm install && npm run dev
 Add provenance checks to your CI pipeline:
 
 ```yaml
-- uses: gavxm/bona@v0.3.0
+- uses: gavxm/yurai@v0.3.0
   with:
     models: |
       meta-llama/Llama-3.1-8B-Instruct
@@ -108,7 +108,7 @@ Set `fail-on-high: true` to block merges when HIGH severity findings exist.
 
 ## How It Works
 
-Bona fetches evidence from four HuggingFace sources concurrently, then runs
+Yurai fetches evidence from four HuggingFace sources concurrently, then runs
 cross-referenced checks across them:
 
 | Source                    | What it provides                                                                     |

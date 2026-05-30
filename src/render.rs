@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use owo_colors::OwoColorize;
 
-use bona::{ModelInvestigation, Severity, SourceStatus};
+use yurai::{ModelInvestigation, Severity, SourceStatus};
 
 const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
 const MAX_TAGS: usize = 5;
@@ -116,10 +116,10 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     }
     println!();
     let name = [
-        r"      __",
-        r"     / /  ___  ___  ___ _",
-        r"    / _ \/ _ \/ _ \/ _ `/",
-        r"   /_.__/\___/_//_/\_,_/",
+        r" _  _  _  _  ____   __   __ ",
+        r"( \/ )/ )( \(  _ \ / _\ (  )",
+        r" )  / ) \/ ( )   //    \ )( ",
+        r"(__/  \____/(__\_)\_/\_/(__)",
     ];
     let name_width = name.iter().map(|l| l.len()).max().unwrap_or(0);
     let name_pad = (width - name_width) / 2;
@@ -160,7 +160,7 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
         let relation_label = inv
             .declared
             .base_model_relation
-            .filter(|r| *r != bona::RelationKind::Unknown)
+            .filter(|r| *r != yurai::RelationKind::Unknown)
             .map(|r| format!(" ({r})"))
             .unwrap_or_default();
         label("base model", &format!("{base_model}{relation_label}"));
@@ -196,7 +196,7 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
             .declared
             .files
             .iter()
-            .filter(|f| bona::WEIGHT_EXTENSIONS.iter().any(|ext| f.ends_with(ext)))
+            .filter(|f| yurai::WEIGHT_EXTENSIONS.iter().any(|ext| f.ends_with(ext)))
             .count();
         let total = inv.declared.files.len();
         if weight_count > 0 {

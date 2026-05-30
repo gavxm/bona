@@ -59,7 +59,7 @@ async fn multi_hop_chain() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/child", &base)
+    let inv = yurai::investigate_with_base_url("testorg/child", &base)
         .await
         .expect("investigation should succeed");
 
@@ -130,7 +130,7 @@ async fn cycle_detection() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/model-a", &base)
+    let inv = yurai::investigate_with_base_url("testorg/model-a", &base)
         .await
         .expect("investigation should succeed (no infinite loop)");
 
@@ -190,7 +190,7 @@ async fn chain_terminates_at_missing_parent() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/child", &base)
+    let inv = yurai::investigate_with_base_url("testorg/child", &base)
         .await
         .expect("investigation should succeed");
 
@@ -252,14 +252,14 @@ async fn chain_stops_at_max_depth() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/subject", &base)
+    let inv = yurai::investigate_with_base_url("testorg/subject", &base)
         .await
         .expect("investigation should succeed");
 
     let lineage = inv.lineage.as_ref().expect("lineage should be populated");
     assert_eq!(
         lineage.chain.len(),
-        bona::MAX_LINEAGE_DEPTH as usize,
+        yurai::MAX_LINEAGE_DEPTH as usize,
         "chain should be capped at MAX_LINEAGE_DEPTH, got {:?}",
         lineage
             .chain
@@ -319,7 +319,7 @@ async fn relation_propagates_through_chain() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/child", &base)
+    let inv = yurai::investigate_with_base_url("testorg/child", &base)
         .await
         .expect("investigation should succeed");
 
@@ -327,8 +327,8 @@ async fn relation_propagates_through_chain() {
     assert_eq!(lineage.chain.len(), 2);
 
     assert_eq!(lineage.chain[0].model_id, "testorg/parent");
-    assert_eq!(lineage.chain[0].relation, bona::RelationKind::Finetune);
+    assert_eq!(lineage.chain[0].relation, yurai::RelationKind::Finetune);
 
     assert_eq!(lineage.chain[1].model_id, "testorg/grandparent");
-    assert_eq!(lineage.chain[1].relation, bona::RelationKind::Quantization);
+    assert_eq!(lineage.chain[1].relation, yurai::RelationKind::Quantization);
 }

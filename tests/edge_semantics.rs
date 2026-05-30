@@ -45,13 +45,13 @@ async fn finetune_relation_captured() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/finetuned", &base)
+    let inv = yurai::investigate_with_base_url("testorg/finetuned", &base)
         .await
         .expect("investigation should succeed");
 
     assert_eq!(
         inv.declared.base_model_relation,
-        Some(bona::RelationKind::Finetune)
+        Some(yurai::RelationKind::Finetune)
     );
     assert_eq!(
         inv.declared.declared_base_model.as_deref(),

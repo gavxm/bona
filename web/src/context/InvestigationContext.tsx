@@ -56,9 +56,15 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     setActiveTab("declared");
 
     try {
-      const filename = modelId.replace("/", "--");
-      const base = import.meta.env.BASE_URL;
-      const resp = await fetch(`${base}investigations/${filename}.json`);
+      const apiUrl = import.meta.env.VITE_API_URL;
+      let resp: Response;
+      if (apiUrl) {
+        resp = await fetch(`${apiUrl}/api/investigate/${modelId}`);
+      } else {
+        const filename = modelId.replace("/", "--");
+        const base = import.meta.env.BASE_URL;
+        resp = await fetch(`${base}investigations/${filename}.json`);
+      }
       if (!resp.ok) throw new Error(`Failed to load investigation for ${modelId}`);
       const data = await resp.json();
       setInvestigation(data);

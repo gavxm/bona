@@ -1,4 +1,4 @@
-//! Bona engine library. CLI and web UI both consume the public API here.
+//! yurai engine library. CLI and web UI both consume the public API here.
 //! [`ModelInvestigation`] is the stable contract - treat changes to it as
 //! API changes.
 

@@ -49,7 +49,7 @@ async fn ungated_child_of_gated_parent_fires_finding() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/child", &base)
+    let inv = yurai::investigate_with_base_url("testorg/child", &base)
         .await
         .expect("investigation should succeed");
 
@@ -107,7 +107,7 @@ async fn boolean_true_gated_is_normalized() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/child", &base)
+    let inv = yurai::investigate_with_base_url("testorg/child", &base)
         .await
         .expect("investigation should succeed");
 

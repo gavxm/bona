@@ -1,4 +1,4 @@
-//! Bona CLI. Thin dispatch layer over the engine and output modules.
+//! Yurai CLI. Thin dispatch layer over the engine and output modules.
 
 use std::io::IsTerminal;
 use std::process::ExitCode;
@@ -8,17 +8,17 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::Shell;
 use owo_colors::OwoColorize;
 
-use bona::output::sarif;
-use bona::{ModelInvestigation, Severity};
+use yurai::output::sarif;
+use yurai::{ModelInvestigation, Severity};
 
 mod render;
 
 #[derive(Parser)]
 #[command(
-    name = "bona",
+    name = "yurai",
     version,
     about = "Forensics-grade provenance explorer for AI models",
-    long_about = "Bona investigates the provenance of a HuggingFace model: \
+    long_about = "Yurai investigates the provenance of a HuggingFace model: \
                   its lineage, license inheritance, and trust signals."
 )]
 struct Cli {
@@ -80,7 +80,7 @@ async fn main() -> ExitCode {
 
     match cli.command {
         Command::Completions { shell } => {
-            clap_complete::generate(shell, &mut Cli::command(), "bona", &mut std::io::stdout());
+            clap_complete::generate(shell, &mut Cli::command(), "yurai", &mut std::io::stdout());
             ExitCode::SUCCESS
         }
         Command::Investigate {
@@ -124,7 +124,7 @@ async fn run_investigate(
     spinner.enable_steady_tick(std::time::Duration::from_millis(80));
 
     let start = Instant::now();
-    let result = bona::investigate(model_id).await;
+    let result = yurai::investigate(model_id).await;
     let elapsed = start.elapsed();
 
     spinner.finish_and_clear();
@@ -199,7 +199,7 @@ async fn run_batch(
             let idx = order;
             order += 1;
             set.spawn(async move {
-                let result = bona::investigate(&model_id).await;
+                let result = yurai::investigate(&model_id).await;
                 (idx, model_id, result)
             });
         }

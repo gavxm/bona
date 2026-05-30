@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Write model IDs to a temp file for bona batch --from.
+# Write model IDs to a temp file for yurai batch --from.
 MODELS_FILE=$(mktemp)
-printf '%s\n' "$BONA_MODELS" | grep -v '^\s*$' > "$MODELS_FILE"
+printf '%s\n' "$YURAI_MODELS" | grep -v '^\s*$' > "$MODELS_FILE"
 
 if [ ! -s "$MODELS_FILE" ]; then
   echo "::error::No model IDs provided"
@@ -11,20 +11,20 @@ if [ ! -s "$MODELS_FILE" ]; then
   exit 1
 fi
 
-# Build the bona batch command. One invocation produces both JSON and SARIF.
-BONA_CMD=(bona batch --from "$MODELS_FILE" --json)
-if [ "${BONA_UPLOAD_SARIF:-false}" = "true" ]; then
-  BONA_CMD+=(--sarif "${RUNNER_TEMP}/bona.sarif")
+# Build the yurai batch command. One invocation produces both JSON and SARIF.
+YURAI_CMD=(yurai batch --from "$MODELS_FILE" --json)
+if [ "${YURAI_UPLOAD_SARIF:-false}" = "true" ]; then
+  YURAI_CMD+=(--sarif "${RUNNER_TEMP}/yurai.sarif")
 fi
 
-BONA_ERR=$(mktemp)
-JSON=$("${BONA_CMD[@]}" 2>"$BONA_ERR") || {
-  echo "::warning::Batch investigation failed: $(cat "$BONA_ERR")"
-  cat "$BONA_ERR" >&2
-  rm -f "$MODELS_FILE" "$BONA_ERR"
+YURAI_ERR=$(mktemp)
+JSON=$("${YURAI_CMD[@]}" 2>"$YURAI_ERR") || {
+  echo "::warning::Batch investigation failed: $(cat "$YURAI_ERR")"
+  cat "$YURAI_ERR" >&2
+  rm -f "$MODELS_FILE" "$YURAI_ERR"
   exit 1
 }
-rm -f "$MODELS_FILE" "$BONA_ERR"
+rm -f "$MODELS_FILE" "$YURAI_ERR"
 
 # Build summary table from the JSON array.
 HAS_HIGH=false
@@ -73,7 +73,7 @@ done
 
 # Write job summary.
 {
-  printf '## bona provenance check\n\n'
+  printf '## yurai provenance check\n\n'
   printf '%b' "$SUMMARY_TABLE"
   if [ -n "$DETAIL_SECTIONS" ]; then
     printf '%b' "$DETAIL_SECTIONS"
@@ -81,7 +81,7 @@ done
 } >> "$GITHUB_STEP_SUMMARY"
 
 # Fail if requested and HIGH findings exist.
-if [ "$BONA_FAIL_ON_HIGH" = "true" ] && [ "$HAS_HIGH" = "true" ]; then
+if [ "$YURAI_FAIL_ON_HIGH" = "true" ] && [ "$HAS_HIGH" = "true" ]; then
   echo "::error::HIGH severity findings detected"
   exit 1
 fi

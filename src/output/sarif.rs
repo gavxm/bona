@@ -2,7 +2,7 @@
 
 use crate::{Finding, ModelInvestigation, Severity};
 
-/// Map bona severity to SARIF level.
+/// Map yurai severity to SARIF level.
 fn sarif_level(severity: Severity) -> &'static str {
     match severity {
         Severity::High => "error",
@@ -67,9 +67,9 @@ pub fn to_sarif(investigations: &[&ModelInvestigation]) -> String {
         "runs": [{
             "tool": {
                 "driver": {
-                    "name": "bona",
+                    "name": "yurai",
                     "version": env!("CARGO_PKG_VERSION"),
-                    "informationUri": "https://github.com/gavxm/bona",
+                    "informationUri": "https://github.com/gavxm/yurai",
                     "rules": rules.into_values().collect::<Vec<_>>()
                 }
             },

@@ -42,7 +42,7 @@ async fn quantization_config_extracted() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/quantized", &base)
+    let inv = yurai::investigate_with_base_url("testorg/quantized", &base)
         .await
         .expect("investigation should succeed");
 
@@ -91,7 +91,7 @@ async fn quantization_with_tag_does_not_fire() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/tagged-quant", &base)
+    let inv = yurai::investigate_with_base_url("testorg/tagged-quant", &base)
         .await
         .expect("investigation should succeed");
 

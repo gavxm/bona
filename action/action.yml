@@ -1,4 +1,4 @@
-name: 'bona provenance check'
+name: 'yurai provenance check'
 description: 'Investigate HuggingFace model provenance and flag license/lineage issues'
 branding:
   icon: 'shield'
@@ -20,32 +20,32 @@ inputs:
     description: 'HuggingFace API token for gated models'
     required: false
   version:
-    description: 'bona version to install (ex. 0.3.0). Defaults to latest.'
+    description: 'yurai version to install (ex. 0.3.0). Defaults to latest.'
     required: false
     default: ''
 
 runs:
   using: 'composite'
   steps:
-    - name: Install bona
+    - name: Install yurai
       shell: bash
       env:
-        BONA_VERSION: ${{ inputs.version }}
+        YURAI_VERSION: ${{ inputs.version }}
       run: |
-        if command -v bona &> /dev/null; then
-          echo "bona already installed"
+        if command -v yurai &> /dev/null; then
+          echo "yurai already installed"
           exit 0
         fi
 
         # Determine version tag.
-        if [ -n "$BONA_VERSION" ]; then
-          TAG="v${BONA_VERSION}"
+        if [ -n "$YURAI_VERSION" ]; then
+          TAG="v${YURAI_VERSION}"
         else
-          TAG=$(curl -s https://api.github.com/repos/gavxm/bona/releases/latest | jq -r '.tag_name')
+          TAG=$(curl -s https://api.github.com/repos/gavxm/yurai/releases/latest | jq -r '.tag_name')
         fi
 
         if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
-          echo "::error::Could not determine bona version"
+          echo "::error::Could not determine yurai version"
           exit 1
         fi
 
@@ -65,24 +65,24 @@ runs:
         esac
 
         # Download and extract binary.
-        URL="https://github.com/gavxm/bona/releases/download/${TAG}/bona-${TARGET}.tar.xz"
-        echo "Downloading bona ${TAG} for ${TARGET}..."
-        curl -sfL "$URL" | tar xJ -C /usr/local/bin bona
-        chmod +x /usr/local/bin/bona
-        echo "bona $(bona --version) installed"
+        URL="https://github.com/gavxm/yurai/releases/download/${TAG}/yurai-${TARGET}.tar.xz"
+        echo "Downloading yurai ${TAG} for ${TARGET}..."
+        curl -sfL "$URL" | tar xJ -C /usr/local/bin yurai
+        chmod +x /usr/local/bin/yurai
+        echo "yurai $(yurai --version) installed"
 
     - name: Run investigations
       shell: bash
       env:
         HF_TOKEN: ${{ inputs.hf-token }}
-        BONA_MODELS: ${{ inputs.models }}
-        BONA_FAIL_ON_HIGH: ${{ inputs.fail-on-high }}
-        BONA_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+        YURAI_MODELS: ${{ inputs.models }}
+        YURAI_FAIL_ON_HIGH: ${{ inputs.fail-on-high }}
+        YURAI_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
       run: bash ${{ github.action_path }}/summary.sh
 
     - name: Upload SARIF
       if: ${{ inputs.upload-sarif == 'true' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: ${{ runner.temp }}/bona.sarif
-        category: bona-provenance
+        sarif_file: ${{ runner.temp }}/yurai.sarif
+        category: yurai-provenance

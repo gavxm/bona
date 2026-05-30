@@ -65,7 +65,7 @@ async fn json_round_trip_preserves_all_fields() {
     )
     .await;
 
-    let inv = bona::investigate_with_base_url("testorg/roundtrip", &base)
+    let inv = yurai::investigate_with_base_url("testorg/roundtrip", &base)
         .await
         .expect("investigation should succeed");
 
@@ -73,7 +73,7 @@ async fn json_round_trip_preserves_all_fields() {
     assert_eq!(inv.lineage.as_ref().unwrap().chain.len(), 2);
 
     let json_str = serde_json::to_string(&inv).expect("serialize should succeed");
-    let inv2: bona::ModelInvestigation =
+    let inv2: yurai::ModelInvestigation =
         serde_json::from_str(&json_str).expect("deserialize should succeed");
 
     // Schema and identity.
