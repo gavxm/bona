@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useInvestigation } from "../context/useInvestigation";
 
 interface GalleryModel {
@@ -8,6 +8,18 @@ interface GalleryModel {
   findingCount: number;
 }
 
+interface HfModel {
+  id: string;
+  downloads: number;
+  likes: number;
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toString();
+}
+
 export function ModelSearch() {
   const { investigation, loading, loadInvestigation } = useInvestigation();
   const [draft, setDraft] = useState(
@@ -15,8 +27,10 @@ export function ModelSearch() {
   );
   const [editing, setEditing] = useState(false);
   const [gallery, setGallery] = useState<GalleryModel[]>([]);
+  const [hfResults, setHfResults] = useState<HfModel[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const value = editing ? draft : (investigation?.model_id ?? draft);
 
@@ -25,6 +39,31 @@ export function ModelSearch() {
       .then((r) => r.json())
       .then(setGallery)
       .catch((e) => console.warn("failed to load gallery:", e));
+  }, []);
+
+  // Debounced HF search.
+  const searchHf = useCallback((query: string) => {
+    clearTimeout(debounceRef.current);
+    if (!query.trim() || query.trim().length < 2) {
+      setHfResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const resp = await fetch(
+          `https://huggingface.co/api/models?search=${encodeURIComponent(query.trim())}&sort=downloads&direction=-1&limit=5`
+        );
+        if (!resp.ok) return;
+        const data: HfModel[] = await resp.json();
+        setHfResults(data.filter((m) => m.id));
+      } catch {
+        // Silently fail - HF search is best-effort.
+      }
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => clearTimeout(debounceRef.current);
   }, []);
 
   useEffect(() => {
@@ -53,9 +92,15 @@ export function ModelSearch() {
     setOpen(false);
   };
 
-  const filtered = value.trim()
+  const filteredGallery = value.trim()
     ? gallery.filter((m) => m.id.toLowerCase().includes(value.toLowerCase()))
     : gallery;
+
+  // Exclude gallery models from HF results to avoid duplicates.
+  const galleryIds = new Set(gallery.map((m) => m.id));
+  const filteredHf = hfResults.filter((m) => !galleryIds.has(m.id));
+
+  const hasResults = filteredGallery.length > 0 || filteredHf.length > 0;
 
   return (
     <div ref={ref} className="relative">
@@ -67,6 +112,7 @@ export function ModelSearch() {
             setDraft(e.target.value);
             setEditing(true);
             setOpen(true);
+            searchHf(e.target.value);
           }}
           onFocus={() => {
             setDraft(value);
@@ -90,25 +136,48 @@ export function ModelSearch() {
           {loading ? "..." : "go"}
         </button>
       </div>
-      {open && filtered.length > 0 && (
-        <div className="absolute right-0 top-full mt-1 w-72 bg-bg-raised border border-border rounded shadow-lg z-50 max-h-60 overflow-y-auto">
-          <div className="px-2 py-1 text-[10px] text-text-muted uppercase tracking-wide border-b border-border">
-            examples
-          </div>
-          {filtered.map((m) => (
-            <button
-              key={m.id}
-              onMouseDown={() => pick(m.id)}
-              className="w-full text-left px-2 py-1.5 text-xs text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors cursor-pointer flex justify-between items-center"
-            >
-              <span className="font-mono truncate">{m.id}</span>
-              <span className="text-[10px] text-text-muted ml-2 shrink-0">
-                {m.findingCount > 0
-                  ? `${m.findingCount} finding${m.findingCount !== 1 ? "s" : ""}`
-                  : "clean"}
-              </span>
-            </button>
-          ))}
+      {open && hasResults && (
+        <div className="absolute right-0 top-full mt-1 w-80 bg-bg-raised border border-border rounded shadow-lg z-50 max-h-72 overflow-y-auto">
+          {filteredGallery.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-[10px] text-text-muted uppercase tracking-wide border-b border-border">
+                examples
+              </div>
+              {filteredGallery.map((m) => (
+                <button
+                  key={m.id}
+                  onMouseDown={() => pick(m.id)}
+                  className="w-full text-left px-2 py-1.5 text-xs text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors cursor-pointer flex justify-between items-center"
+                >
+                  <span className="font-mono truncate">{m.id}</span>
+                  <span className="text-[10px] text-text-muted ml-2 shrink-0">
+                    {m.findingCount > 0
+                      ? `${m.findingCount} finding${m.findingCount !== 1 ? "s" : ""}`
+                      : "clean"}
+                  </span>
+                </button>
+              ))}
+            </>
+          )}
+          {filteredHf.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-[10px] text-text-muted uppercase tracking-wide border-b border-border">
+                huggingface
+              </div>
+              {filteredHf.map((m) => (
+                <button
+                  key={m.id}
+                  onMouseDown={() => pick(m.id)}
+                  className="w-full text-left px-2 py-1.5 text-xs text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors cursor-pointer flex justify-between items-center"
+                >
+                  <span className="font-mono truncate">{m.id}</span>
+                  <span className="text-[10px] text-text-muted ml-2 shrink-0">
+                    {formatCount(m.downloads)} dl
+                  </span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
