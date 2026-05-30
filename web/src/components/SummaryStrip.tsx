@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useInvestigation } from "../context/useInvestigation";
+import { ExportModal } from "./ExportModal";
 
 export function SummaryStrip() {
   const { investigation } = useInvestigation();
+  const [showExport, setShowExport] = useState(false);
+
   if (!investigation) return null;
 
   const findings = investigation.findings;
@@ -26,23 +30,34 @@ export function SummaryStrip() {
   if (lowCount > 0) parts.push(`${lowCount} low`);
 
   return (
-    <div className="flex items-center gap-5 px-4 py-1.5 border-b border-border bg-bg-surface text-[11px]">
-      <div className="flex items-center gap-1.5">
-        <span className="text-text-muted">verdict:</span>
-        {isClean ? (
-          <span className="text-status-ok font-medium">no critical issues</span>
-        ) : (
-          <span className="text-severity-high font-medium">
-            {findings.length} finding{findings.length !== 1 ? "s" : ""} ({parts.join(", ")})
+    <>
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-border bg-bg-surface text-[11px]">
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-text-muted">verdict:</span>
+            {isClean ? (
+              <span className="text-status-ok font-medium">no critical issues</span>
+            ) : (
+              <span className="text-severity-high font-medium">
+                {findings.length} finding{findings.length !== 1 ? "s" : ""} ({parts.join(", ")})
+              </span>
+            )}
+          </div>
+          <span className="text-text-muted">·</span>
+          <span className="text-text-secondary">
+            {sourcesOk}/{sourcesOk + sourcesFailed} sources
           </span>
-        )}
+          <span className="text-text-muted">·</span>
+          <span className="text-text-muted font-mono">{totalTime}ms</span>
+        </div>
+        <button
+          onClick={() => setShowExport(true)}
+          className="text-text-muted hover:text-text-secondary transition-colors cursor-pointer px-1.5 py-0.5 rounded border border-border hover:border-text-muted text-[10px]"
+        >
+          export
+        </button>
       </div>
-      <span className="text-text-muted">·</span>
-      <span className="text-text-secondary">
-        {sourcesOk}/{sourcesOk + sourcesFailed} sources
-      </span>
-      <span className="text-text-muted">·</span>
-      <span className="text-text-muted font-mono">{totalTime}ms</span>
-    </div>
+      {showExport && <ExportModal onClose={() => setShowExport(false)} />}
+    </>
   );
 }

@@ -10,9 +10,13 @@ export interface InvestigationState {
   activeTab: CenterTab;
   highlightedFields: string[];
   highlightedGraphNodes: string[];
+  isSnapshot: boolean;
+  schemaWarning: boolean;
+  dismissSchemaWarning: () => void;
   selectFinding: (id: string | null) => void;
   setActiveTab: (tab: CenterTab) => void;
   loadInvestigation: (modelId: string) => Promise<void>;
+  setInvestigationDirect: (inv: ModelInvestigation, findingId?: string | null) => void;
 }
 
 export const InvestigationContext = createContext<InvestigationState | null>(null);

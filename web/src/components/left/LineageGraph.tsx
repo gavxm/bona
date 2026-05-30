@@ -157,7 +157,7 @@ function LineageGraphInner() {
       // Ignore the overflow placeholder.
       if (node.id === "__siblings_overflow") return;
 
-      // Ancestor or sibling node - pivot to investigate that model.
+      // Pivot to investigate the clicked model.
       loadInvestigation(node.id);
     },
     [investigation, selectFinding, loadInvestigation]

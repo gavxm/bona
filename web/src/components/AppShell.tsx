@@ -95,6 +95,28 @@ function LoadingSkeleton() {
   );
 }
 
+function ErrorState({ error }: { error: string }) {
+  const modelId = new URLSearchParams(window.location.search).get("model");
+
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center max-w-sm">
+        <p className="text-severity-high text-sm mb-3">{error}</p>
+        {modelId && (
+          <a
+            href={`https://huggingface.co/${modelId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-link hover:underline"
+          >
+            View {modelId} on HuggingFace
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AppShell() {
   const { investigation, loading, error } = useInvestigation();
 
@@ -102,11 +124,7 @@ export function AppShell() {
     <div className="h-screen flex flex-col">
       <TopBar />
       {loading && <LoadingSkeleton />}
-      {error && (
-        <div className="flex-1 flex items-center justify-center text-severity-high">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState error={error} />}
       {!loading && !error && !investigation && <EmptyState />}
       {!loading && !error && investigation && (
         <>

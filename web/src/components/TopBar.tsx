@@ -17,7 +17,7 @@ function formatTimestamp(iso: string): string {
 }
 
 export function TopBar() {
-  const { investigation } = useInvestigation();
+  const { investigation, isSnapshot } = useInvestigation();
 
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-bg-base">
@@ -29,10 +29,15 @@ export function TopBar() {
         </div>
         {investigation && (
           <>
-            <span className="text-border text-xs">│</span>
+            <span className="text-border text-xs">|</span>
             <span className="text-text-secondary text-xs font-mono">
               {investigation.model_id}
             </span>
+            {isSnapshot && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-raised border border-border text-accent">
+                snapshot
+              </span>
+            )}
             <span className="text-text-muted text-[10px]">
               investigated {formatTimestamp(investigation.investigated_at)}
             </span>
