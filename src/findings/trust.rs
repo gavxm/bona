@@ -59,24 +59,25 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 
     // Low engagement: significant downloads but zero likes.
-    if let (Some(downloads), Some(likes)) = (inv.declared.downloads, inv.declared.likes) {
-        if downloads >= 1000 && likes == 0 {
-            inv.findings.push(Finding {
-                id: "low_engagement".into(),
-                title: "High downloads but zero likes".into(),
-                severity: Severity::Info,
-                detail: format!(
-                    "Model has {downloads} downloads but 0 likes. \
-                     Genuine popular models typically accumulate some likes.",
-                ),
-                reason: "A large download count with zero community endorsement \
-                         can indicate automated downloads or scraped re-uploads."
-                    .into(),
-                declared_value: Some(format!("{downloads} downloads")),
-                actual_value: Some("0 likes".into()),
-                evidence_url: Some(format!("https://huggingface.co/{}", inv.model_id)),
-            });
-        }
+    if let (Some(downloads), Some(likes)) = (inv.declared.downloads, inv.declared.likes)
+        && downloads >= 1000
+        && likes == 0
+    {
+        inv.findings.push(Finding {
+            id: "low_engagement".into(),
+            title: "High downloads but zero likes".into(),
+            severity: Severity::Info,
+            detail: format!(
+                "Model has {downloads} downloads but 0 likes. \
+                 Genuine popular models typically accumulate some likes.",
+            ),
+            reason: "A large download count with zero community endorsement \
+                     can indicate automated downloads or scraped re-uploads."
+                .into(),
+            declared_value: Some(format!("{downloads} downloads")),
+            actual_value: Some("0 likes".into()),
+            evidence_url: Some(format!("https://huggingface.co/{}", inv.model_id)),
+        });
     }
 
     // Recently modified old model.

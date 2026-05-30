@@ -179,14 +179,20 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     if let Some(likes) = inv.declared.likes {
         label("likes", &format_number(likes));
     }
-    if let Some(ref gated) = inv.declared.gated {
-        if gated != "false" {
-            label("gated", gated);
-        }
+    if let Some(ref gated) = inv.declared.gated
+        && gated != "false"
+    {
+        label("gated", gated);
     }
     if !inv.declared.files.is_empty() {
         let weight_exts = [
-            ".safetensors", ".bin", ".pt", ".pth", ".gguf", ".ggml", ".onnx",
+            ".safetensors",
+            ".bin",
+            ".pt",
+            ".pth",
+            ".gguf",
+            ".ggml",
+            ".onnx",
         ];
         let weight_count = inv
             .declared

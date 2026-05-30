@@ -229,7 +229,11 @@ mod tests {
         // Tags don't include any quant tag.
         inv.declared.tags = vec!["transformers".into(), "llama".into()];
         check(&mut inv);
-        assert!(inv.findings.iter().any(|f| f.id == "undeclared_quantization"));
+        assert!(
+            inv.findings
+                .iter()
+                .any(|f| f.id == "undeclared_quantization")
+        );
     }
 
     #[test]
@@ -238,7 +242,11 @@ mod tests {
         inv.config.as_mut().unwrap().quant_method = Some("gptq".into());
         inv.declared.tags = vec!["transformers".into(), "gptq".into()];
         check(&mut inv);
-        assert!(!inv.findings.iter().any(|f| f.id == "undeclared_quantization"));
+        assert!(
+            !inv.findings
+                .iter()
+                .any(|f| f.id == "undeclared_quantization")
+        );
     }
 
     #[test]
@@ -260,10 +268,7 @@ mod tests {
     #[test]
     fn suspicious_files_detected() {
         let mut inv = make_inv(4096, 32, 32000, None);
-        inv.declared.files = vec![
-            "model.safetensors".into(),
-            "payload.exe".into(),
-        ];
+        inv.declared.files = vec!["model.safetensors".into(), "payload.exe".into()];
         check(&mut inv);
         assert!(inv.findings.iter().any(|f| f.id == "suspicious_files"));
     }

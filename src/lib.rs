@@ -27,7 +27,7 @@ pub enum BonaError {
 }
 
 /// Bump when [`ModelInvestigation`] changes in a breaking way.
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 /// Ordered low-to-high so findings can be sorted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -129,10 +129,10 @@ pub struct DeclaredFacts {
     pub created_at: Option<String>,
 }
 
+pub use sources::RelationKind;
 pub use sources::community::CommunityEvidence;
 pub use sources::model_config::ModelConfigEvidence;
 pub use sources::model_tree::ModelTreeEvidence;
-pub use sources::RelationKind;
 
 /// The investigation document. CLI prints it, web UI renders it, gallery
 /// caches it as JSON.

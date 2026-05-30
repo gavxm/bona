@@ -17,6 +17,16 @@ async fn investigate_populates_all_sources() {
             "pipeline_tag": "text-generation",
             "tags": ["transformers", "license:mit"],
             "downloads": 1000,
+            "likes": 15,
+            "gated": false,
+            "sha": "abc123",
+            "lastModified": "2025-03-01T12:00:00.000Z",
+            "createdAt": "2024-06-01T00:00:00.000Z",
+            "siblings": [
+                { "rfilename": "config.json" },
+                { "rfilename": "model.safetensors" },
+                { "rfilename": "tokenizer.json" }
+            ],
             "cardData": {
                 "license": "mit",
                 "base_model": "testorg/base"
@@ -110,6 +120,9 @@ async fn investigate_populates_all_sources() {
         .await
         .expect("investigation should succeed");
 
+    // Schema version.
+    assert_eq!(inv.schema_version, 2);
+
     // Declared facts from HF metadata.
     assert_eq!(inv.declared.declared_license.as_deref(), Some("mit"));
     assert_eq!(
@@ -117,6 +130,15 @@ async fn investigate_populates_all_sources() {
         Some("testorg/base")
     );
     assert_eq!(inv.declared.downloads, Some(1000));
+    assert_eq!(inv.declared.likes, Some(15));
+    assert_eq!(inv.declared.gated.as_deref(), Some("false"));
+    assert_eq!(inv.declared.sha.as_deref(), Some("abc123"));
+    assert!(
+        inv.declared
+            .files
+            .contains(&"model.safetensors".to_string())
+    );
+    assert_eq!(inv.declared.files.len(), 3);
 
     // Model tree.
     let lineage = inv.lineage.expect("lineage should be populated");

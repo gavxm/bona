@@ -87,10 +87,7 @@ pub fn extract_base_models(card_data: &Option<serde_json::Value>) -> Vec<ParsedB
                         .and_then(|r| r.as_str())
                         .map(parse_relation)
                         .unwrap_or(RelationKind::Unknown);
-                    Some(ParsedBaseModel {
-                        model_id,
-                        relation,
-                    })
+                    Some(ParsedBaseModel { model_id, relation })
                 }
                 _ => None,
             })
@@ -98,7 +95,6 @@ pub fn extract_base_models(card_data: &Option<serde_json::Value>) -> Vec<ParsedB
         _ => Vec::new(),
     }
 }
-
 
 /// The result of fetching a single evidence source.
 pub struct FetchResult {
