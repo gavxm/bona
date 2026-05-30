@@ -24,7 +24,7 @@ export function AppShell() {
       {!loading && !error && !investigation && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <img src={`${import.meta.env.BASE_URL}logo-dark.svg`} alt="yurai" className="h-54 w-auto mx-auto opacity-60" />
+            <img src={`${import.meta.env.BASE_URL}logo-dark.svg`} alt="yurai" className="h-24 w-auto mx-auto opacity-60" />
             <p className="text-text-secondary text-lg">select a model to investigate</p>
           </div>
         </div>
