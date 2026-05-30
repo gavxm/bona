@@ -35,11 +35,11 @@ enum Command {
         model_id: String,
 
         /// Emit the full investigation document as JSON instead of a text report.
-        #[arg(long)]
+        #[arg(long, group = "output_format")]
         json: bool,
 
         /// Emit findings in SARIF format (for GitHub code scanning).
-        #[arg(long)]
+        #[arg(long, group = "output_format")]
         sarif: bool,
 
         /// Exit with code 1 if any high-severity findings are detected (for CI).
@@ -53,11 +53,11 @@ enum Command {
         from: String,
 
         /// Emit all results as a JSON array.
-        #[arg(long)]
+        #[arg(long, group = "output_format")]
         json: bool,
 
         /// Emit all findings in SARIF format (for GitHub code scanning).
-        #[arg(long)]
+        #[arg(long, group = "output_format")]
         sarif: bool,
 
         /// Exit with code 1 if any model has high-severity findings.
