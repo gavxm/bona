@@ -12,6 +12,10 @@ inputs:
     description: 'Fail the workflow if any HIGH severity finding is detected'
     required: false
     default: 'false'
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub code scanning'
+    required: false
+    default: 'false'
   hf-token:
     description: 'HuggingFace API token for gated models'
     required: false
@@ -74,3 +78,22 @@ runs:
         BONA_MODELS: ${{ inputs.models }}
         BONA_FAIL_ON_HIGH: ${{ inputs.fail-on-high }}
       run: bash ${{ github.action_path }}/summary.sh
+
+    - name: Generate SARIF
+      if: inputs.upload-sarif == 'true'
+      shell: bash
+      env:
+        HF_TOKEN: ${{ inputs.hf-token }}
+        BONA_MODELS: ${{ inputs.models }}
+      run: |
+        MODELS_FILE=$(mktemp)
+        printf '%s\n' "$BONA_MODELS" | grep -v '^\s*$' > "$MODELS_FILE"
+        bona batch --from "$MODELS_FILE" --sarif > "$RUNNER_TEMP/bona.sarif"
+        rm -f "$MODELS_FILE"
+
+    - name: Upload SARIF
+      if: inputs.upload-sarif == 'true'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ runner.temp }}/bona.sarif
+        category: bona-provenance
