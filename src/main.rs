@@ -1,5 +1,6 @@
 //! Bona CLI. Parses args, calls `bona::investigate`, and renders the result.
 
+use std::io::IsTerminal;
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -9,7 +10,7 @@ use clap_complete::Shell;
 use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
 
-use bona::{ModelInvestigation, Severity};
+use bona::{Finding, ModelInvestigation, Severity};
 
 const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
 const MAX_TAGS: usize = 5;
@@ -35,10 +36,32 @@ enum Command {
         model_id: String,
 
         /// Emit the full investigation document as JSON instead of a text report.
+        #[arg(long, group = "output_format")]
+        json: bool,
+
+        /// Emit findings in SARIF format (for GitHub code scanning).
+        #[arg(long, group = "output_format")]
+        sarif: bool,
+
+        /// Exit with code 1 if any high-severity findings are detected (for CI).
+        #[arg(long)]
+        fail_on_high: bool,
+    },
+    /// Investigate multiple models from a file or stdin.
+    Batch {
+        /// Path to a file with one model id per line, or "-" for stdin.
+        #[arg(long, default_value = "-")]
+        from: String,
+
+        /// Emit all results as a JSON array instead of a text report.
         #[arg(long)]
         json: bool,
 
-        /// Exit with code 1 if any high-severity findings are detected (for CI).
+        /// Write SARIF output to this file (alongside the normal stdout output).
+        #[arg(long)]
+        sarif: Option<String>,
+
+        /// Exit with code 1 if any model has high-severity findings.
         #[arg(long)]
         fail_on_high: bool,
     },
@@ -66,6 +89,7 @@ async fn main() -> ExitCode {
         Command::Investigate {
             model_id,
             json,
+            sarif,
             fail_on_high,
         } => {
             if !model_id.contains('/') {
@@ -95,7 +119,9 @@ async fn main() -> ExitCode {
 
             match result {
                 Ok(inv) => {
-                    if json {
+                    if sarif {
+                        println!("{}", to_sarif(&[&inv]));
+                    } else if json {
                         println!("{}", serde_json::to_string_pretty(&inv).unwrap());
                     } else {
                         print_text_report(&inv, elapsed);
@@ -110,6 +136,126 @@ async fn main() -> ExitCode {
                     eprintln!("{} {e}", "error:".red().bold());
                     ExitCode::FAILURE
                 }
+            }
+        }
+        Command::Batch {
+            from,
+            json,
+            sarif,
+            fail_on_high,
+        } => {
+            // Hint when reading from stdin interactively.
+            if from == "-" && std::io::stdin().is_terminal() {
+                eprintln!(
+                    "{} reading model ids from stdin (one per line, ctrl-d to finish)",
+                    "hint:".dimmed()
+                );
+            }
+
+            let model_ids = match read_model_ids(&from) {
+                Ok(ids) => ids,
+                Err(e) => {
+                    eprintln!("{} {e}", "error:".red().bold());
+                    return ExitCode::FAILURE;
+                }
+            };
+
+            if model_ids.is_empty() {
+                eprintln!("{} no model ids provided", "error:".red().bold());
+                return ExitCode::FAILURE;
+            }
+
+            let total = model_ids.len();
+            eprintln!(
+                "{} {} model{}...",
+                "investigating".dimmed(),
+                total,
+                if total == 1 { "" } else { "s" }
+            );
+
+            // Investigate concurrently with a cap of 4.
+            let mut set = tokio::task::JoinSet::new();
+            let mut pending: Vec<String> = model_ids.into_iter().rev().collect();
+            type BatchResult = (usize, Result<ModelInvestigation, (String, String)>);
+            let mut batch_results: Vec<BatchResult> = Vec::new();
+            let concurrency = 4;
+            let mut order = 0usize;
+
+            while !pending.is_empty() || !set.is_empty() {
+                while set.len() < concurrency && !pending.is_empty() {
+                    let model_id = pending.pop().unwrap();
+                    let idx = order;
+                    order += 1;
+                    set.spawn(async move {
+                        let result = bona::investigate(&model_id).await;
+                        (idx, model_id, result)
+                    });
+                }
+
+                if let Some(Ok((idx, model_id, result))) = set.join_next().await {
+                    match result {
+                        Ok(inv) => {
+                            eprintln!("  {} {}", "✓".green(), model_id.dimmed());
+                            batch_results.push((idx, Ok(inv)));
+                        }
+                        Err(e) => {
+                            eprintln!("  {} {}: {e}", "✗".red(), model_id);
+                            batch_results.push((idx, Err((model_id, e.to_string()))));
+                        }
+                    }
+                }
+            }
+
+            // Sort by original order.
+            batch_results.sort_by_key(|(idx, _)| *idx);
+
+            let mut investigations: Vec<ModelInvestigation> = Vec::new();
+            let mut has_high = false;
+            let mut errors = 0u32;
+
+            for (_, result) in batch_results {
+                match result {
+                    Ok(inv) => {
+                        if inv.findings.iter().any(|f| f.severity == Severity::High) {
+                            has_high = true;
+                        }
+                        investigations.push(inv);
+                    }
+                    Err(_) => {
+                        errors += 1;
+                    }
+                }
+            }
+
+            // Write SARIF to file if requested.
+            let mut sarif_failed = false;
+            if let Some(sarif_path) = &sarif {
+                let refs: Vec<&ModelInvestigation> = investigations.iter().collect();
+                let sarif_json = to_sarif(&refs);
+                if let Err(e) = std::fs::write(sarif_path, &sarif_json) {
+                    eprintln!(
+                        "{} writing SARIF to {sarif_path}: {e}",
+                        "error:".red().bold()
+                    );
+                    sarif_failed = true;
+                } else {
+                    eprintln!("{} SARIF written to {sarif_path}", "ok:".green());
+                }
+            }
+
+            // Primary output to stdout.
+            if json {
+                println!("{}", serde_json::to_string_pretty(&investigations).unwrap());
+            } else {
+                print_batch_report(&investigations, errors);
+            }
+
+            if fail_on_high && has_high {
+                ExitCode::from(1)
+            } else if sarif_failed || (errors > 0 && investigations.is_empty()) {
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
             }
         }
     }
@@ -423,6 +569,56 @@ fn print_summary(inv: &ModelInvestigation) {
     );
 }
 
+fn print_batch_report(results: &[ModelInvestigation], errors: u32) {
+    println!();
+    println!("  {}", "batch results".bold());
+    println!("  {}", "─".repeat(58).dimmed());
+
+    for inv in results {
+        let high = inv
+            .findings
+            .iter()
+            .filter(|f| f.severity == Severity::High)
+            .count();
+        let med = inv
+            .findings
+            .iter()
+            .filter(|f| f.severity == Severity::Medium)
+            .count();
+        let total = inv.findings.len();
+
+        let status = if high > 0 {
+            format!("{total} findings ({high} high)").red().to_string()
+        } else if med > 0 {
+            format!("{total} findings ({med} medium)")
+                .yellow()
+                .to_string()
+        } else if total > 0 {
+            format!("{total} findings").blue().to_string()
+        } else {
+            "clean".green().to_string()
+        };
+
+        println!("  {:<40} {}", inv.model_id, status);
+
+        // Show individual findings.
+        for f in &inv.findings {
+            let badge = match f.severity {
+                Severity::High => "HIGH".red().bold().to_string(),
+                Severity::Medium => "MEDIUM".yellow().bold().to_string(),
+                Severity::Low => "LOW".blue().to_string(),
+                Severity::Info => "INFO".dimmed().to_string(),
+            };
+            println!("    {} {}", badge, f.title);
+        }
+    }
+
+    if errors > 0 {
+        println!("  {}", format!("{errors} model(s) failed").red());
+    }
+    println!();
+}
+
 /// Wrap text at word boundaries to fit within `width` columns.
 fn wrap_text(text: &str, width: usize) -> Vec<String> {
     let mut lines = Vec::new();
@@ -456,4 +652,173 @@ fn format_number(n: u64) -> String {
         result.push(c);
     }
     result.chars().rev().collect()
+}
+
+/// Read model IDs from a file or stdin ("-").
+fn read_model_ids(path: &str) -> Result<Vec<String>, String> {
+    use std::io::BufRead;
+
+    let reader: Box<dyn std::io::BufRead> = if path == "-" {
+        Box::new(std::io::stdin().lock())
+    } else {
+        let file = std::fs::File::open(path).map_err(|e| format!("could not open {path}: {e}"))?;
+        Box::new(std::io::BufReader::new(file))
+    };
+
+    let mut ids = Vec::new();
+    for (line_num, line) in reader.lines().enumerate() {
+        match line {
+            Ok(l) => {
+                let trimmed = l.trim().to_string();
+                if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                    ids.push(trimmed);
+                }
+            }
+            Err(e) => {
+                return Err(format!("read error at line {}: {e}", line_num + 1));
+            }
+        }
+    }
+
+    // Validate format.
+    for id in &ids {
+        if !id.contains('/') {
+            return Err(format!(
+                "invalid model id '{id}': must be in org/name format"
+            ));
+        }
+    }
+
+    Ok(ids)
+}
+
+/// Map bona severity to SARIF level.
+fn sarif_level(severity: Severity) -> &'static str {
+    match severity {
+        Severity::High => "error",
+        Severity::Medium => "warning",
+        Severity::Low => "note",
+        Severity::Info => "note",
+    }
+}
+
+/// Build a SARIF result from a finding.
+fn sarif_result(model_id: &str, finding: &Finding) -> serde_json::Value {
+    let mut result = serde_json::json!({
+        "ruleId": finding.id,
+        "level": sarif_level(finding.severity),
+        "message": {
+            "text": format!("[{}] {}: {}", model_id, finding.title, finding.detail)
+        },
+        "properties": {
+            "model_id": model_id,
+            "severity": finding.severity,
+            "reason": finding.reason,
+        }
+    });
+
+    if let Some(url) = &finding.evidence_url {
+        result["locations"] = serde_json::json!([{
+            "physicalLocation": {
+                "artifactLocation": {
+                    "uri": url
+                }
+            }
+        }]);
+    }
+
+    result
+}
+
+/// Convert one or more investigations to SARIF JSON.
+fn to_sarif(investigations: &[&ModelInvestigation]) -> String {
+    let mut results = Vec::new();
+    let mut rules = std::collections::BTreeMap::new();
+
+    for inv in investigations {
+        for finding in &inv.findings {
+            results.push(sarif_result(&inv.model_id, finding));
+
+            rules.entry(finding.id.clone()).or_insert_with(|| {
+                serde_json::json!({
+                    "id": finding.id,
+                    "shortDescription": { "text": finding.title },
+                    "defaultConfiguration": {
+                        "level": sarif_level(finding.severity)
+                    }
+                })
+            });
+        }
+    }
+
+    let sarif = serde_json::json!({
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "bona",
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "informationUri": "https://github.com/gavxm/bona",
+                    "rules": rules.into_values().collect::<Vec<_>>()
+                }
+            },
+            "results": results
+        }]
+    });
+
+    serde_json::to_string_pretty(&sarif).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    fn write_temp(content: &str) -> tempfile::NamedTempFile {
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+        f
+    }
+
+    #[test]
+    fn read_model_ids_parses_valid_file() {
+        let f = write_temp("org/model-a\norg/model-b\n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(ids, vec!["org/model-a", "org/model-b"]);
+    }
+
+    #[test]
+    fn read_model_ids_skips_comments_and_blanks() {
+        let f = write_temp("# comment\norg/model\n\n  \n# another\norg/other\n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(ids, vec!["org/model", "org/other"]);
+    }
+
+    #[test]
+    fn read_model_ids_trims_whitespace() {
+        let f = write_temp("  org/model  \n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(ids, vec!["org/model"]);
+    }
+
+    #[test]
+    fn read_model_ids_rejects_invalid_format() {
+        let f = write_temp("no-slash\n");
+        let err = read_model_ids(f.path().to_str().unwrap()).unwrap_err();
+        assert!(err.contains("invalid model id"));
+    }
+
+    #[test]
+    fn read_model_ids_returns_error_for_missing_file() {
+        let err = read_model_ids("/nonexistent/path.txt").unwrap_err();
+        assert!(err.contains("could not open"));
+    }
+
+    #[test]
+    fn read_model_ids_returns_empty_for_all_comments() {
+        let f = write_temp("# just comments\n# nothing else\n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert!(ids.is_empty());
+    }
 }

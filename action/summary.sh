@@ -1,73 +1,74 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Read model IDs from BONA_MODELS (newline-separated), skip empty lines.
-mapfile -t MODELS < <(printf '%s\n' "$BONA_MODELS" | grep -v '^\s*$')
+# Write model IDs to a temp file for bona batch --from.
+MODELS_FILE=$(mktemp)
+printf '%s\n' "$BONA_MODELS" | grep -v '^\s*$' > "$MODELS_FILE"
 
-if [ ${#MODELS[@]} -eq 0 ]; then
+if [ ! -s "$MODELS_FILE" ]; then
   echo "::error::No model IDs provided"
+  rm -f "$MODELS_FILE"
   exit 1
 fi
 
+# Build the bona batch command. One invocation produces both JSON and SARIF.
+BONA_CMD=(bona batch --from "$MODELS_FILE" --json)
+if [ "${BONA_UPLOAD_SARIF:-false}" = "true" ]; then
+  BONA_CMD+=(--sarif "${RUNNER_TEMP}/bona.sarif")
+fi
+
+BONA_ERR=$(mktemp)
+JSON=$("${BONA_CMD[@]}" 2>"$BONA_ERR") || {
+  echo "::warning::Batch investigation failed: $(cat "$BONA_ERR")"
+  cat "$BONA_ERR" >&2
+  rm -f "$MODELS_FILE" "$BONA_ERR"
+  exit 1
+}
+rm -f "$MODELS_FILE" "$BONA_ERR"
+
+# Build summary table from the JSON array.
 HAS_HIGH=false
 SUMMARY_TABLE="| Model | Findings | Highest Severity |\n|-------|----------|------------------|\n"
 DETAIL_SECTIONS=""
 
-for model in "${MODELS[@]}"; do
-  model=$(printf '%s' "$model" | xargs) # Trim whitespace.
-  echo "::group::Investigating $model"
+NUM_MODELS=$(printf '%s' "$JSON" | jq 'length')
 
-  # Run bona and capture JSON output. Stderr goes to a temp file.
-  BONA_ERR=$(mktemp)
-  JSON=$(bona investigate "$model" --json 2>"$BONA_ERR") || {
-    echo "::warning::Failed to investigate $model: $(cat "$BONA_ERR")"
-    rm -f "$BONA_ERR"
-    SUMMARY_TABLE+="| $model | error | — |\n"
-    echo "::endgroup::"
-    continue
-  }
-  rm -f "$BONA_ERR"
+for i in $(seq 0 $((NUM_MODELS - 1))); do
+  MODEL_ID=$(printf '%s' "$JSON" | jq -r ".[$i].model_id")
+  FINDING_COUNT=$(printf '%s' "$JSON" | jq ".[$i].findings | length")
+  HIGHEST=$(printf '%s' "$JSON" | jq -r "
+    [.[$i].findings[].severity] |
+    if any(. == \"high\") then \"high\"
+    elif any(. == \"medium\") then \"medium\"
+    elif any(. == \"low\") then \"low\"
+    elif any(. == \"info\") then \"info\"
+    else \"none\" end
+  ")
 
-  printf '%s' "$JSON" | jq -r '.model_id' 2>/dev/null || {
-    echo "::warning::Invalid JSON output for $model"
-    SUMMARY_TABLE+="| $model | error | — |\n"
-    echo "::endgroup::"
-    continue
-  }
+  case "$HIGHEST" in
+    high)
+      SUMMARY_TABLE+="| $MODEL_ID | $FINDING_COUNT | :red_circle: HIGH |\n"
+      HAS_HIGH=true
+      ;;
+    medium)
+      SUMMARY_TABLE+="| $MODEL_ID | $FINDING_COUNT | :orange_circle: MEDIUM |\n"
+      ;;
+    low)
+      SUMMARY_TABLE+="| $MODEL_ID | $FINDING_COUNT | :blue_circle: LOW |\n"
+      ;;
+    info)
+      SUMMARY_TABLE+="| $MODEL_ID | $FINDING_COUNT | :white_circle: INFO |\n"
+      ;;
+    *)
+      SUMMARY_TABLE+="| $MODEL_ID | 0 | :green_circle: clean |\n"
+      ;;
+  esac
 
-  # Extract findings info. Compute max severity explicitly.
-  FINDING_COUNT=$(printf '%s' "$JSON" | jq '.findings | length')
-  HIGHEST=$(printf '%s' "$JSON" | jq -r '
-    [.findings[].severity] |
-    if any(. == "high") then "high"
-    elif any(. == "medium") then "medium"
-    elif any(. == "low") then "low"
-    elif any(. == "info") then "info"
-    else "none" end
-  ')
-
-  # Build summary table row.
-  if [ "$HIGHEST" = "high" ]; then
-    SUMMARY_TABLE+="| $model | $FINDING_COUNT | :red_circle: HIGH |\n"
-    HAS_HIGH=true
-  elif [ "$HIGHEST" = "medium" ]; then
-    SUMMARY_TABLE+="| $model | $FINDING_COUNT | :orange_circle: MEDIUM |\n"
-  elif [ "$HIGHEST" = "low" ]; then
-    SUMMARY_TABLE+="| $model | $FINDING_COUNT | :blue_circle: LOW |\n"
-  elif [ "$HIGHEST" = "info" ]; then
-    SUMMARY_TABLE+="| $model | $FINDING_COUNT | :white_circle: INFO |\n"
-  else
-    SUMMARY_TABLE+="| $model | 0 | :green_circle: clean |\n"
-  fi
-
-  # Build detail section for models with findings.
   if [ "$FINDING_COUNT" -gt 0 ]; then
-    DETAIL_SECTIONS+="\n### $model\n\n"
-    DETAIL_SECTIONS+=$(printf '%s' "$JSON" | jq -r '.findings[] | "- **\(.severity | ascii_upcase)** \(.title) — \(.detail)"')
+    DETAIL_SECTIONS+="\n### $MODEL_ID\n\n"
+    DETAIL_SECTIONS+=$(printf '%s' "$JSON" | jq -r ".[$i].findings[] | \"- **\\(.severity | ascii_upcase)** \\(.title) — \\(.detail)\"")
     DETAIL_SECTIONS+="\n"
   fi
-
-  echo "::endgroup::"
 done
 
 # Write job summary.
