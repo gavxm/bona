@@ -11,20 +11,19 @@ if [ ! -s "$MODELS_FILE" ]; then
   exit 1
 fi
 
-# Run batch investigation once and capture JSON.
+# Build the bona batch command. One invocation produces both JSON and SARIF.
+BONA_CMD=(bona batch --from "$MODELS_FILE" --json)
+if [ "${BONA_UPLOAD_SARIF:-false}" = "true" ]; then
+  BONA_CMD+=(--sarif "${RUNNER_TEMP}/bona.sarif")
+fi
+
 BONA_ERR=$(mktemp)
-JSON=$(bona batch --from "$MODELS_FILE" --json 2>"$BONA_ERR") || {
+JSON=$("${BONA_CMD[@]}" 2>"$BONA_ERR") || {
   echo "::warning::Batch investigation failed: $(cat "$BONA_ERR")"
   cat "$BONA_ERR" >&2
   rm -f "$MODELS_FILE" "$BONA_ERR"
   exit 1
 }
-
-# If SARIF upload is requested, run sarif output from the same models file.
-if [ "${BONA_UPLOAD_SARIF:-false}" = "true" ]; then
-  bona batch --from "$MODELS_FILE" --sarif > "${RUNNER_TEMP}/bona.sarif" 2>/dev/null || true
-fi
-
 rm -f "$MODELS_FILE" "$BONA_ERR"
 
 # Build summary table from the JSON array.

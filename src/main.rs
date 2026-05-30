@@ -1,5 +1,6 @@
 //! Bona CLI. Parses args, calls `bona::investigate`, and renders the result.
 
+use std::io::IsTerminal;
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -52,13 +53,13 @@ enum Command {
         #[arg(long, default_value = "-")]
         from: String,
 
-        /// Emit all results as a JSON array.
-        #[arg(long, group = "output_format")]
+        /// Emit all results as a JSON array instead of a text report.
+        #[arg(long)]
         json: bool,
 
-        /// Emit all findings in SARIF format (for GitHub code scanning).
-        #[arg(long, group = "output_format")]
-        sarif: bool,
+        /// Write SARIF output to this file (alongside the normal stdout output).
+        #[arg(long)]
+        sarif: Option<String>,
 
         /// Exit with code 1 if any model has high-severity findings.
         #[arg(long)]
@@ -144,7 +145,7 @@ async fn main() -> ExitCode {
             fail_on_high,
         } => {
             // Hint when reading from stdin interactively.
-            if from == "-" && atty::is(atty::Stream::Stdin) {
+            if from == "-" && std::io::stdin().is_terminal() {
                 eprintln!(
                     "{} reading model ids from stdin (one per line, ctrl-d to finish)",
                     "hint:".dimmed()
@@ -191,10 +192,19 @@ async fn main() -> ExitCode {
                 }
             }
 
-            if sarif {
+            // Write SARIF to file if requested.
+            if let Some(sarif_path) = &sarif {
                 let refs: Vec<&ModelInvestigation> = results.iter().collect();
-                println!("{}", to_sarif(&refs));
-            } else if json {
+                let sarif_json = to_sarif(&refs);
+                if let Err(e) = std::fs::write(sarif_path, &sarif_json) {
+                    eprintln!("{} writing SARIF to {sarif_path}: {e}", "error:".red().bold());
+                } else {
+                    eprintln!("{} SARIF written to {sarif_path}", "ok:".green());
+                }
+            }
+
+            // Primary output to stdout.
+            if json {
                 println!("{}", serde_json::to_string_pretty(&results).unwrap());
             } else {
                 print_batch_report(&results, errors);
