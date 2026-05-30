@@ -41,8 +41,8 @@ function LineageGraphInner() {
         const id =
           role === "subject"
             ? investigation.model_id
-            : role === "parent" && lineage?.parent_id
-              ? lineage.parent_id
+            : role === "parent" && lineage?.chain[0]
+              ? lineage.chain[0].model_id
               : null;
         if (!id) continue;
         const existing = nodeFindings.get(id) ?? { high: false, medium: false };
@@ -52,33 +52,41 @@ function LineageGraphInner() {
       }
     }
 
-    // Parent node
-    if (lineage?.parent_id) {
-      const pf = nodeFindings.get(lineage.parent_id);
+    // Ancestor chain nodes (most distant ancestor first, then parent).
+    const chain = lineage?.chain ?? [];
+    const reversedChain = [...chain].reverse();
+    for (const ancestor of reversedChain) {
+      const af = nodeFindings.get(ancestor.model_id);
       nodes.push({
-        id: lineage.parent_id,
+        id: ancestor.model_id,
         type: "model",
         position: { x: 40, y },
         data: {
-          modelId: lineage.parent_id,
-          license: lineage.parent_license,
-          exists: lineage.parent_exists,
+          modelId: ancestor.model_id,
+          license: ancestor.license,
+          exists: ancestor.exists,
           isSubject: false,
-          highlighted: highlightedGraphNodes.includes(lineage.parent_id),
-          hasHighFinding: pf?.high ?? false,
-          hasMediumFinding: pf?.medium ?? false,
+          highlighted: highlightedGraphNodes.includes(ancestor.model_id),
+          hasHighFinding: af?.high ?? false,
+          hasMediumFinding: af?.medium ?? false,
         } satisfies ModelNodeData,
       });
-
-      edges.push({
-        id: `${lineage.parent_id}->${investigation.model_id}`,
-        source: lineage.parent_id,
-        target: investigation.model_id,
-        style: { stroke: "#8b949e", strokeWidth: 1.5 },
-        animated: highlightedGraphNodes.includes(lineage.parent_id),
-      });
-
       y += 120;
+    }
+
+    // Edges between chain nodes (ancestor -> child).
+    for (let i = 0; i < reversedChain.length; i++) {
+      const target =
+        i < reversedChain.length - 1
+          ? reversedChain[i + 1].model_id
+          : investigation.model_id;
+      edges.push({
+        id: `${reversedChain[i].model_id}->${target}`,
+        source: reversedChain[i].model_id,
+        target,
+        style: { stroke: "#8b949e", strokeWidth: 1.5 },
+        animated: highlightedGraphNodes.includes(reversedChain[i].model_id),
+      });
     }
 
     // Subject node
@@ -100,6 +108,7 @@ function LineageGraphInner() {
     y += 120;
 
     // Sibling nodes - stacked vertically
+    const parentId = chain[0]?.model_id;
     if (lineage?.siblings) {
       lineage.siblings.forEach((sib, i) => {
         nodes.push({
@@ -109,10 +118,10 @@ function LineageGraphInner() {
           data: { modelId: sib },
         });
 
-        if (lineage.parent_id) {
+        if (parentId) {
           edges.push({
-            id: `${lineage.parent_id}->${sib}`,
-            source: lineage.parent_id,
+            id: `${parentId}->${sib}`,
+            source: parentId,
             target: sib,
             style: { stroke: "#6e7681" },
           });
@@ -128,19 +137,20 @@ function LineageGraphInner() {
       if (!investigation) return;
 
       if (node.type === "sibling") {
-        // Open sibling on HuggingFace
         window.open(`https://huggingface.co/${node.id}`, "_blank");
         return;
       }
 
       if (node.id === investigation.model_id) {
-        // Subject node - deselect any finding
         selectFinding(null);
         return;
       }
 
-      // Parent node - show declared tab with license highlighted
-      if (node.id === investigation.lineage?.parent_id) {
+      // Ancestor node - show declared tab
+      const isAncestor = investigation.lineage?.chain.some(
+        (n) => n.model_id === node.id
+      );
+      if (isAncestor) {
         setActiveTab("declared");
       }
     },
