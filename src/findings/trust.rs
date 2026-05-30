@@ -13,27 +13,27 @@ pub fn check(inv: &mut ModelInvestigation) {
     };
 
     // New account (< 90 days old).
-    if let Some(created) = &community.author_created_at
-        && let Ok(created_dt) = chrono::DateTime::parse_from_rfc3339(created)
-    {
-        let age_days = (Utc::now() - created_dt.to_utc()).num_days();
-        if age_days < 90 {
-            let author = community.author.as_deref().unwrap_or("unknown");
-            inv.findings.push(Finding {
-                id: "new_account".into(),
-                title: "Uploader account is very new".into(),
-                severity: Severity::Medium,
-                detail: format!(
-                    "Account '{author}' was created {age_days} days ago. \
+    if let Some(created) = &community.author_created_at {
+        if let Ok(created_dt) = chrono::DateTime::parse_from_rfc3339(created) {
+            let age_days = (Utc::now() - created_dt.to_utc()).num_days();
+            if age_days < 90 {
+                let author = community.author.as_deref().unwrap_or("unknown");
+                inv.findings.push(Finding {
+                    id: "new_account".into(),
+                    title: "Uploader account is very new".into(),
+                    severity: Severity::Medium,
+                    detail: format!(
+                        "Account '{author}' was created {age_days} days ago. \
                      New accounts uploading models warrant extra scrutiny.",
-                ),
-                reason: "New accounts are a common vector for re-uploading models \
+                    ),
+                    reason: "New accounts are a common vector for re-uploading models \
                          with stripped licenses or injected weights."
-                    .into(),
-                declared_value: None,
-                actual_value: Some(format!("{age_days} days old")),
-                evidence_url: Some(format!("https://huggingface.co/{author}")),
-            });
+                        .into(),
+                    declared_value: None,
+                    actual_value: Some(format!("{age_days} days old")),
+                    evidence_url: Some(format!("https://huggingface.co/{author}")),
+                });
+            }
         }
     }
 
@@ -59,25 +59,24 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 
     // Low engagement: significant downloads but zero likes.
-    if let (Some(downloads), Some(likes)) = (inv.declared.downloads, inv.declared.likes)
-        && downloads >= 1000
-        && likes == 0
-    {
-        inv.findings.push(Finding {
-            id: "low_engagement".into(),
-            title: "High downloads but zero likes".into(),
-            severity: Severity::Info,
-            detail: format!(
-                "Model has {downloads} downloads but 0 likes. \
+    if let (Some(downloads), Some(likes)) = (inv.declared.downloads, inv.declared.likes) {
+        if downloads >= 1000 && likes == 0 {
+            inv.findings.push(Finding {
+                id: "low_engagement".into(),
+                title: "High downloads but zero likes".into(),
+                severity: Severity::Info,
+                detail: format!(
+                    "Model has {downloads} downloads but 0 likes. \
                  Genuine popular models typically accumulate some likes.",
-            ),
-            reason: "A large download count with zero community endorsement \
+                ),
+                reason: "A large download count with zero community endorsement \
                      can indicate automated downloads or scraped re-uploads."
-                .into(),
-            declared_value: Some(format!("{downloads} downloads")),
-            actual_value: Some("0 likes".into()),
-            evidence_url: Some(format!("https://huggingface.co/{}", inv.model_id)),
-        });
+                    .into(),
+                declared_value: Some(format!("{downloads} downloads")),
+                actual_value: Some("0 likes".into()),
+                evidence_url: Some(format!("https://huggingface.co/{}", inv.model_id)),
+            });
+        }
     }
 
     // Recently modified old model.
