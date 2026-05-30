@@ -56,20 +56,31 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     setActiveTab("declared");
 
     try {
+      // Try the API first. When VITE_API_URL is unset, this hits the current
+      // origin.
       const apiBase = import.meta.env.VITE_API_URL ?? "";
-      let resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(() => null);
-      const isJson = resp?.headers.get("content-type")?.includes("application/json");
+      let resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(
+        () => null,
+      );
+      const isJson = resp?.headers
+        .get("content-type")
+        ?.includes("application/json");
 
       if (!resp || !resp.ok || !isJson) {
         const filename = modelId.replace("/", "--");
         const base = import.meta.env.BASE_URL;
         resp = await fetch(`${base}investigations/${filename}.json`);
-        const fallbackIsJson = resp.headers.get("content-type")?.includes("application/json");
+        const fallbackIsJson = resp.headers
+          .get("content-type")
+          ?.includes("application/json");
         if (!fallbackIsJson) {
-          throw new Error(`No investigation available for ${modelId}. Start the API server to investigate live models.`);
+          throw new Error(
+            `No investigation available for ${modelId}. Start the API server to investigate live models.`,
+          );
         }
       }
-      if (!resp.ok) throw new Error(`Failed to load investigation for ${modelId}`);
+      if (!resp.ok)
+        throw new Error(`Failed to load investigation for ${modelId}`);
       const data = await resp.json();
       setInvestigation(data);
       const url = new URL(window.location.href);

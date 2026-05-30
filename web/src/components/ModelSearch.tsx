@@ -10,21 +10,22 @@ interface GalleryModel {
 
 export function ModelSearch() {
   const { investigation, loading, loadInvestigation } = useInvestigation();
-  const [value, setValue] = useState("");
+  const [draft, setDraft] = useState(
+    () => new URLSearchParams(window.location.search).get("model") ?? ""
+  );
+  const [editing, setEditing] = useState(false);
   const [gallery, setGallery] = useState<GalleryModel[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const value = editing ? draft : (investigation?.model_id ?? draft);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}investigations/gallery.json`)
       .then((r) => r.json())
       .then(setGallery)
-      .catch(() => {});
+      .catch((e) => console.warn("failed to load gallery:", e));
   }, []);
-
-  useEffect(() => {
-    if (investigation) setValue(investigation.model_id);
-  }, [investigation]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -39,13 +40,15 @@ export function ModelSearch() {
   const submit = () => {
     const id = value.trim();
     if (id && id.includes("/")) {
+      setEditing(false);
       loadInvestigation(id);
       setOpen(false);
     }
   };
 
   const pick = (id: string) => {
-    setValue(id);
+    setDraft(id);
+    setEditing(false);
     loadInvestigation(id);
     setOpen(false);
   };
@@ -61,10 +64,16 @@ export function ModelSearch() {
           type="text"
           value={value}
           onChange={(e) => {
-            setValue(e.target.value);
+            setDraft(e.target.value);
+            setEditing(true);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setDraft(value);
+            setEditing(true);
+            setOpen(true);
+          }}
+          onBlur={() => setEditing(false)}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
             if (e.key === "Escape") setOpen(false);

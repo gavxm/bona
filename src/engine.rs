@@ -10,6 +10,8 @@ use crate::{InvestigationError, ModelInvestigation, findings, sources};
 const HF_BASE_URL: &str = "https://huggingface.co";
 
 /// Build the default HTTP client with retry middleware and optional HF_TOKEN.
+/// Reads `HF_TOKEN` from the environment at call time - set it before starting
+/// long-lived processes like the API server.
 pub fn build_client() -> Result<ClientWithMiddleware, InvestigationError> {
     let mut builder =
         reqwest::Client::builder().user_agent(concat!("yurai/", env!("CARGO_PKG_VERSION")));
@@ -89,7 +91,9 @@ async fn run_investigation(
         inv.sources.push(result.record);
         if let Some(evidence) = result.evidence {
             match evidence {
-                Evidence::HfMetadata(_) => {}
+                Evidence::HfMetadata(_) => {
+                    debug_assert!(false, "HfMetadata should not appear in phase 2 results");
+                }
                 Evidence::ModelTree(e) => inv.lineage = Some(e),
                 Evidence::ModelConfig(e) => inv.config = Some(e),
                 Evidence::Community(e) => inv.community = Some(e),
