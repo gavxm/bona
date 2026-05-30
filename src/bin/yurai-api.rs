@@ -88,10 +88,10 @@ async fn investigate(
     // Check cache first (no semaphore needed for reads).
     {
         let cache = state.cache.read().await;
-        if let Some((inserted, inv)) = cache.get(&model_id) {
-            if inserted.elapsed() < CACHE_TTL {
-                return Json(inv.clone()).into_response();
-            }
+        if let Some((inserted, inv)) = cache.get(&model_id)
+            && inserted.elapsed() < CACHE_TTL
+        {
+            return Json(inv.clone()).into_response();
         }
     }
 
@@ -103,10 +103,10 @@ async fn investigate(
     // Re-check after acquiring permit (another request may have populated it).
     {
         let cache = state.cache.read().await;
-        if let Some((inserted, inv)) = cache.get(&model_id) {
-            if inserted.elapsed() < CACHE_TTL {
-                return Json(inv.clone()).into_response();
-            }
+        if let Some((inserted, inv)) = cache.get(&model_id)
+            && inserted.elapsed() < CACHE_TTL
+        {
+            return Json(inv.clone()).into_response();
         }
     }
 
