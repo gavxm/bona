@@ -44,15 +44,30 @@ bona investigate meta-llama/Llama-3.1-8B-Instruct
 # JSON output
 bona investigate ruslanmv/Medical-Llama3-8B --json
 
+# SARIF output (for GitHub code scanning)
+bona investigate ruslanmv/Medical-Llama3-8B --sarif
+
 # fail CI on high-severity findings
 bona investigate some/model --fail-on-high
+```
+
+Batch mode - investigate multiple models from a file or stdin:
+
+```sh
+# from a file
+bona batch --from models.txt
+
+# from stdin
+echo -e "microsoft/phi-2\nruslanmv/Medical-Llama3-8B" | bona batch
+
+# batch with SARIF output
+bona batch --from models.txt --sarif > results.sarif
 ```
 
 Set `HF_TOKEN` to access gated models:
 
 ```sh
 export HF_TOKEN=hf_...
-
 bona investigate meta-llama/Llama-3.1-8B-Instruct
 ```
 

@@ -22,8 +22,8 @@ export function GalleryPicker() {
   const label = (m: GalleryModel) => {
     const short = m.id.split("/").pop() ?? m.id;
     return m.findingCount > 0
-      ? `${short} — ${m.findingCount} finding${m.findingCount !== 1 ? "s" : ""}`
-      : `${short} — clean`;
+      ? `${short} - ${m.findingCount} finding${m.findingCount !== 1 ? "s" : ""}`
+      : `${short} - clean`;
   };
 
   return (

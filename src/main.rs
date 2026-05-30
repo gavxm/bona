@@ -9,7 +9,7 @@ use clap_complete::Shell;
 use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
 
-use bona::{ModelInvestigation, Severity};
+use bona::{Finding, ModelInvestigation, Severity};
 
 const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
 const MAX_TAGS: usize = 5;
@@ -38,7 +38,29 @@ enum Command {
         #[arg(long)]
         json: bool,
 
+        /// Emit findings in SARIF format (for GitHub code scanning).
+        #[arg(long)]
+        sarif: bool,
+
         /// Exit with code 1 if any high-severity findings are detected (for CI).
+        #[arg(long)]
+        fail_on_high: bool,
+    },
+    /// Investigate multiple models from a file or stdin.
+    Batch {
+        /// Path to a file with one model id per line, or "-" for stdin.
+        #[arg(long, default_value = "-")]
+        from: String,
+
+        /// Emit all results as a JSON array.
+        #[arg(long)]
+        json: bool,
+
+        /// Emit all findings in SARIF format (for GitHub code scanning).
+        #[arg(long)]
+        sarif: bool,
+
+        /// Exit with code 1 if any model has high-severity findings.
         #[arg(long)]
         fail_on_high: bool,
     },
@@ -66,6 +88,7 @@ async fn main() -> ExitCode {
         Command::Investigate {
             model_id,
             json,
+            sarif,
             fail_on_high,
         } => {
             if !model_id.contains('/') {
@@ -95,7 +118,9 @@ async fn main() -> ExitCode {
 
             match result {
                 Ok(inv) => {
-                    if json {
+                    if sarif {
+                        println!("{}", to_sarif(&[&inv]));
+                    } else if json {
                         println!("{}", serde_json::to_string_pretty(&inv).unwrap());
                     } else {
                         print_text_report(&inv, elapsed);
@@ -110,6 +135,91 @@ async fn main() -> ExitCode {
                     eprintln!("{} {e}", "error:".red().bold());
                     ExitCode::FAILURE
                 }
+            }
+        }
+        Command::Batch {
+            from,
+            json,
+            sarif,
+            fail_on_high,
+        } => {
+            let model_ids = match read_model_ids(&from) {
+                Ok(ids) => ids,
+                Err(e) => {
+                    eprintln!("{} {e}", "error:".red().bold());
+                    return ExitCode::FAILURE;
+                }
+            };
+
+            if model_ids.is_empty() {
+                eprintln!("{} no model ids provided", "error:".red().bold());
+                return ExitCode::FAILURE;
+            }
+
+            let mut results: Vec<ModelInvestigation> = Vec::new();
+            let mut has_high = false;
+            let mut errors = 0u32;
+
+            for model_id in &model_ids {
+                eprintln!(
+                    "{} {}...",
+                    "investigating".dimmed(),
+                    model_id.cyan()
+                );
+
+                match bona::investigate(model_id).await {
+                    Ok(inv) => {
+                        if inv.findings.iter().any(|f| f.severity == Severity::High) {
+                            has_high = true;
+                        }
+                        results.push(inv);
+                    }
+                    Err(e) => {
+                        eprintln!("{} {model_id}: {e}", "error:".red().bold());
+                        errors += 1;
+                    }
+                }
+            }
+
+            if sarif {
+                let refs: Vec<&ModelInvestigation> = results.iter().collect();
+                println!("{}", to_sarif(&refs));
+            } else if json {
+                println!("{}", serde_json::to_string_pretty(&results).unwrap());
+            } else {
+                // Text summary table.
+                println!();
+                println!("  {}", "batch results".bold());
+                println!("  {}", "─".repeat(58).dimmed());
+                for inv in &results {
+                    let high = inv.findings.iter().filter(|f| f.severity == Severity::High).count();
+                    let med = inv.findings.iter().filter(|f| f.severity == Severity::Medium).count();
+                    let total = inv.findings.len();
+
+                    let status = if high > 0 {
+                        format!("{} findings ({} high)", total, high).red().to_string()
+                    } else if med > 0 {
+                        format!("{} findings ({} medium)", total, med).yellow().to_string()
+                    } else if total > 0 {
+                        format!("{} findings", total).blue().to_string()
+                    } else {
+                        "clean".green().to_string()
+                    };
+
+                    println!("  {:<40} {}", inv.model_id, status);
+                }
+                if errors > 0 {
+                    println!("  {}", format!("{errors} model(s) failed").red());
+                }
+                println!();
+            }
+
+            if fail_on_high && has_high {
+                ExitCode::from(1)
+            } else if errors > 0 && results.is_empty() {
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
             }
         }
     }
@@ -456,4 +566,113 @@ fn format_number(n: u64) -> String {
         result.push(c);
     }
     result.chars().rev().collect()
+}
+
+/// Read model IDs from a file or stdin ("-").
+fn read_model_ids(path: &str) -> Result<Vec<String>, String> {
+    use std::io::BufRead;
+
+    let reader: Box<dyn std::io::BufRead> = if path == "-" {
+        Box::new(std::io::stdin().lock())
+    } else {
+        let file = std::fs::File::open(path)
+            .map_err(|e| format!("could not open {path}: {e}"))?;
+        Box::new(std::io::BufReader::new(file))
+    };
+
+    let ids: Vec<String> = reader
+        .lines()
+        .map_while(Result::ok)
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect();
+
+    // Validate format.
+    for id in &ids {
+        if !id.contains('/') {
+            return Err(format!(
+                "invalid model id '{id}': must be in org/name format"
+            ));
+        }
+    }
+
+    Ok(ids)
+}
+
+/// Map bona severity to SARIF level.
+fn sarif_level(severity: Severity) -> &'static str {
+    match severity {
+        Severity::High => "error",
+        Severity::Medium => "warning",
+        Severity::Low => "note",
+        Severity::Info => "note",
+    }
+}
+
+/// Build a SARIF result from a finding.
+fn sarif_result(model_id: &str, finding: &Finding) -> serde_json::Value {
+    let mut result = serde_json::json!({
+        "ruleId": finding.id,
+        "level": sarif_level(finding.severity),
+        "message": {
+            "text": format!("[{}] {}: {}", model_id, finding.title, finding.detail)
+        },
+        "properties": {
+            "model_id": model_id,
+            "severity": finding.severity,
+            "reason": finding.reason,
+        }
+    });
+
+    if let Some(url) = &finding.evidence_url {
+        result["locations"] = serde_json::json!([{
+            "physicalLocation": {
+                "artifactLocation": {
+                    "uri": url
+                }
+            }
+        }]);
+    }
+
+    result
+}
+
+/// Convert one or more investigations to SARIF JSON.
+fn to_sarif(investigations: &[&ModelInvestigation]) -> String {
+    let mut results = Vec::new();
+    let mut rules = std::collections::BTreeMap::new();
+
+    for inv in investigations {
+        for finding in &inv.findings {
+            results.push(sarif_result(&inv.model_id, finding));
+
+            rules.entry(finding.id.clone()).or_insert_with(|| {
+                serde_json::json!({
+                    "id": finding.id,
+                    "shortDescription": { "text": finding.title },
+                    "defaultConfiguration": {
+                        "level": sarif_level(finding.severity)
+                    }
+                })
+            });
+        }
+    }
+
+    let sarif = serde_json::json!({
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "bona",
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "informationUri": "https://github.com/gavxm/bona",
+                    "rules": rules.into_values().collect::<Vec<_>>()
+                }
+            },
+            "results": results
+        }]
+    });
+
+    serde_json::to_string_pretty(&sarif).unwrap()
 }
