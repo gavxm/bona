@@ -98,7 +98,7 @@ export function ModelSearch() {
           {filtered.map((m) => (
             <button
               key={m.id}
-              onClick={() => pick(m.id)}
+              onMouseDown={() => pick(m.id)}
               className="w-full text-left px-2 py-1.5 text-xs text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors cursor-pointer flex justify-between items-center"
             >
               <span className="font-mono truncate">{m.id}</span>

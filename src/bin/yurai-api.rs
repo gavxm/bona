@@ -62,7 +62,11 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
+    let port: u16 = std::env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(3000);
+    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], port));
     eprintln!("yurai-api listening on http://{addr}");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
