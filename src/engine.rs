@@ -38,7 +38,10 @@ pub async fn investigate_with_base_url(
     inv.sources.push(hf.record);
     let (base_model, relation) = if let Some(Evidence::HfMetadata(e)) = hf.evidence {
         let bm = e.declared.declared_base_model.clone();
-        let rel = e.declared.base_model_relation.unwrap_or(RelationKind::Unknown);
+        let rel = e
+            .declared
+            .base_model_relation
+            .unwrap_or(RelationKind::Unknown);
         inv.declared = e.declared;
         (bm, rel)
     } else {

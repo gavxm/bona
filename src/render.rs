@@ -230,21 +230,21 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
             label("parent", "(none declared)");
         } else {
             for node in &lineage.chain {
-                let status = if node.exists { "" } else { " (not found on HF)" };
+                let status = if node.exists {
+                    ""
+                } else {
+                    " (not found on HF)"
+                };
                 let license_info = node
                     .license
                     .as_deref()
                     .map(|l| format!(" [{l}]"))
                     .unwrap_or_default();
                 let relation = format!("{}", node.relation);
-                let depth_label = if node.depth == 0 {
-                    "parent".to_string()
-                } else {
-                    let prefix = match node.depth {
-                        1 => "grandparent".to_string(),
-                        n => format!("ancestor (depth {n})")
-                    };
-                    prefix
+                let depth_label = match node.depth {
+                    0 => "parent".to_string(),
+                    1 => "grandparent".to_string(),
+                    n => format!("ancestor ({n})"),
                 };
                 label(
                     &depth_label,

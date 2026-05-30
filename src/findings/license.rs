@@ -79,11 +79,7 @@ pub fn check(inv: &mut ModelInvestigation) {
         None => return, // No declared license - handled by documentation gap check.
     };
 
-    let parent_license = match inv
-        .lineage
-        .as_ref()
-        .and_then(|l| l.parent_license())
-    {
+    let parent_license = match inv.lineage.as_ref().and_then(|l| l.parent_license()) {
         Some(l) => l,
         None => return, // No parent or no parent license - can't cross-reference.
     };
@@ -166,6 +162,69 @@ pub fn check(inv: &mut ModelInvestigation) {
             });
         }
     }
+
+    // Transitive check: scan ancestors beyond the direct parent.
+    check_transitive(inv);
+}
+
+/// Check for transitive license violations: a permissive leaf with a
+/// copyleft or restricted ancestor anywhere in the chain.
+fn check_transitive(inv: &mut ModelInvestigation) {
+    let declared_license = match &inv.declared.declared_license {
+        Some(l) => l,
+        None => return,
+    };
+
+    let child_class = match classify(declared_license) {
+        Some(c) => c,
+        None => return,
+    };
+
+    let chain = match &inv.lineage {
+        Some(l) => &l.chain,
+        None => return,
+    };
+
+    // Skip depth 0 (direct parent) - already covered by the main check.
+    for node in chain.iter().filter(|n| n.depth > 0) {
+        let ancestor_license = match &node.license {
+            Some(l) => l,
+            None => continue,
+        };
+
+        // Same license - no issue.
+        if declared_license.to_lowercase() == ancestor_license.to_lowercase() {
+            continue;
+        }
+
+        let ancestor_class = match classify(ancestor_license) {
+            Some(c) => c,
+            None => continue,
+        };
+
+        if child_class < ancestor_class {
+            inv.findings.push(Finding {
+                id: "transitive_license_violation".into(),
+                title: "Transitive license violation".into(),
+                severity: Severity::High,
+                detail: format!(
+                    "Declares '{}' but ancestor '{}' (depth {}) uses '{}' ({}). \
+                     License restrictions propagate through the lineage chain.",
+                    declared_license,
+                    node.model_id,
+                    node.depth + 1,
+                    ancestor_license,
+                    license_label(ancestor_license),
+                ),
+                reason: "Even if the direct parent has a compatible license, \
+                         a more restrictive ancestor license may still apply."
+                    .into(),
+                declared_value: Some(declared_license.to_string()),
+                actual_value: Some(format!("{ancestor_license} (from {})", node.model_id)),
+                evidence_url: Some(format!("https://huggingface.co/{}", node.model_id)),
+            });
+        }
+    }
 }
 
 #[cfg(test)]
@@ -222,6 +281,104 @@ mod tests {
         assert_eq!(inv.findings.len(), 1);
         assert_eq!(inv.findings[0].id, "license_unverifiable");
         assert_eq!(inv.findings[0].severity, Severity::Info);
+    }
+
+    #[test]
+    fn transitive_violation_from_grandparent() {
+        use crate::{DeclaredFacts, LineageEvidence, LineageNode, RelationKind, SCHEMA_VERSION};
+
+        let mut inv = ModelInvestigation {
+            schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
+            model_id: "test/child".into(),
+            declared: DeclaredFacts {
+                model_id: "test/child".into(),
+                declared_license: Some("mit".into()),
+                declared_base_model: Some("test/parent".into()),
+                ..Default::default()
+            },
+            lineage: Some(LineageEvidence {
+                chain: vec![
+                    LineageNode {
+                        model_id: "test/parent".into(),
+                        license: Some("apache-2.0".into()),
+                        relation: RelationKind::Finetune,
+                        exists: true,
+                        gated: None,
+                        depth: 0,
+                    },
+                    LineageNode {
+                        model_id: "test/grandparent".into(),
+                        license: Some("gpl-3.0".into()),
+                        relation: RelationKind::Unknown,
+                        exists: true,
+                        gated: None,
+                        depth: 1,
+                    },
+                ],
+                siblings: vec![],
+            }),
+            config: None,
+            community: None,
+            sources: vec![],
+            findings: vec![],
+        };
+        check(&mut inv);
+        assert!(
+            inv.findings
+                .iter()
+                .any(|f| f.id == "transitive_license_violation")
+        );
+        // Should also have license_mismatch for direct parent (mit vs apache-2.0).
+        assert!(inv.findings.iter().any(|f| f.id == "license_mismatch"));
+    }
+
+    #[test]
+    fn no_transitive_violation_with_consistent_chain() {
+        use crate::{DeclaredFacts, LineageEvidence, LineageNode, RelationKind, SCHEMA_VERSION};
+
+        let mut inv = ModelInvestigation {
+            schema_version: SCHEMA_VERSION,
+            investigated_at: "2025-01-01T00:00:00Z".into(),
+            model_id: "test/child".into(),
+            declared: DeclaredFacts {
+                model_id: "test/child".into(),
+                declared_license: Some("gpl-3.0".into()),
+                declared_base_model: Some("test/parent".into()),
+                ..Default::default()
+            },
+            lineage: Some(LineageEvidence {
+                chain: vec![
+                    LineageNode {
+                        model_id: "test/parent".into(),
+                        license: Some("gpl-3.0".into()),
+                        relation: RelationKind::Finetune,
+                        exists: true,
+                        gated: None,
+                        depth: 0,
+                    },
+                    LineageNode {
+                        model_id: "test/grandparent".into(),
+                        license: Some("gpl-3.0".into()),
+                        relation: RelationKind::Unknown,
+                        exists: true,
+                        gated: None,
+                        depth: 1,
+                    },
+                ],
+                siblings: vec![],
+            }),
+            config: None,
+            community: None,
+            sources: vec![],
+            findings: vec![],
+        };
+        check(&mut inv);
+        assert!(
+            !inv.findings
+                .iter()
+                .any(|f| f.id == "transitive_license_violation")
+        );
     }
 
     fn make_inv(child_license: &str, parent_license: &str) -> ModelInvestigation {

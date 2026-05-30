@@ -187,7 +187,15 @@ async fn fetch_parent_info(
     client: &reqwest::Client,
     base_url: &str,
     parent_id: &str,
-) -> Result<(bool, Option<String>, Option<String>, Option<serde_json::Value>), BonaError> {
+) -> Result<
+    (
+        bool,
+        Option<String>,
+        Option<String>,
+        Option<serde_json::Value>,
+    ),
+    BonaError,
+> {
     let url = format!("{base_url}/api/models/{parent_id}");
     let resp = client.get(&url).send().await?;
     if resp.status() == reqwest::StatusCode::NOT_FOUND {

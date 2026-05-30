@@ -31,9 +31,7 @@ pub fn check(inv: &mut ModelInvestigation) {
     let parent_is_gated = match lineage.parent_gated() {
         Some("auto" | "manual" | "true") => true,
         Some(_) => false,
-        None => lineage
-            .parent_license()
-            .is_some_and(is_typically_gated),
+        None => lineage.parent_license().is_some_and(is_typically_gated),
     };
 
     if !parent_is_gated {

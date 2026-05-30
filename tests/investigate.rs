@@ -127,9 +127,10 @@ async fn populates_all_sources() {
 
     // Model tree.
     let lineage = inv.lineage.expect("lineage should be populated");
-    assert_eq!(lineage.parent_id.as_deref(), Some("testorg/base"));
-    assert_eq!(lineage.parent_license.as_deref(), Some("apache-2.0"));
-    assert_eq!(lineage.parent_exists, Some(true));
+    assert_eq!(lineage.parent_id(), Some("testorg/base"));
+    assert_eq!(lineage.parent_license(), Some("apache-2.0"));
+    assert_eq!(lineage.parent_exists(), Some(true));
+    assert_eq!(lineage.chain.len(), 1);
     assert!(lineage.siblings.contains(&"testorg/sibling1".to_string()));
     assert!(!lineage.siblings.contains(&"testorg/testmodel".to_string()));
 
