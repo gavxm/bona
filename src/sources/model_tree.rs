@@ -16,6 +16,9 @@ pub struct ModelTreeEvidence {
     pub parent_license: Option<String>,
     /// Whether the parent model id resolved (exists on HF).
     pub parent_exists: Option<bool>,
+    /// Parent's access control status: "false", "auto", or "manual".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_gated: Option<String>,
     /// Top sibling models, by downloads.
     pub siblings: Vec<String>,
 }
@@ -25,6 +28,8 @@ pub struct ModelTreeEvidence {
 struct HfModelInfo {
     #[serde(rename = "cardData", default)]
     card_data: Option<serde_json::Value>,
+    #[serde(default)]
+    gated: Option<serde_json::Value>,
 }
 
 /// Minimal response shape for the sibling search.
@@ -68,9 +73,10 @@ pub async fn fetch(
     );
 
     match parent_result {
-        Ok((exists, license)) => {
+        Ok((exists, license, gated)) => {
             evidence.parent_exists = Some(exists);
             evidence.parent_license = license;
+            evidence.parent_gated = gated;
         }
         Err(_) => {
             evidence.parent_exists = Some(false);
@@ -85,23 +91,28 @@ pub async fn fetch(
     FetchResult::ok(EvidenceSource::ModelTree, ms, Evidence::ModelTree(evidence))
 }
 
-/// Fetch the parent model's metadata to get its license.
+/// Fetch the parent model's metadata to get its license and gated status.
 async fn fetch_parent_info(
     client: &reqwest::Client,
     base_url: &str,
     parent_id: &str,
-) -> Result<(bool, Option<String>), BonaError> {
+) -> Result<(bool, Option<String>, Option<String>), BonaError> {
     let url = format!("{base_url}/api/models/{parent_id}");
     let resp = client.get(&url).send().await?;
     if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        return Ok((false, None));
+        return Ok((false, None, None));
     }
     let resp = resp.error_for_status()?;
     let info: HfModelInfo = resp
         .json()
         .await
         .map_err(|e| BonaError::Parse(e.to_string()))?;
-    Ok((true, extract_license(&info.card_data)))
+    let gated = match &info.gated {
+        Some(serde_json::Value::String(s)) => Some(s.clone()),
+        Some(serde_json::Value::Bool(b)) => Some(b.to_string()),
+        _ => None,
+    };
+    Ok((true, extract_license(&info.card_data), gated))
 }
 
 /// Find sibling models (other finetunings of the same parent).

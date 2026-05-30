@@ -241,6 +241,7 @@ mod tests {
                 parent_id: Some("test/parent".into()),
                 parent_license: Some(parent_license.into()),
                 parent_exists: Some(true),
+                parent_gated: None,
                 siblings: vec![],
             }),
             config: None,

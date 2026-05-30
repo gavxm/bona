@@ -105,6 +105,25 @@ pub struct DeclaredFacts {
     pub pipeline_tag: Option<String>,
     pub tags: Vec<String>,
     pub downloads: Option<u64>,
+    /// Access control status: "false", "auto", or "manual".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gated: Option<String>,
+    /// Latest commit hash.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sha: Option<String>,
+    /// ISO 8601 timestamp of last modification.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_modified: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private: Option<bool>,
+    /// Filenames in the model repo.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files: Vec<String>,
+    /// ISO 8601 timestamp of model creation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
 }
 
 pub use sources::community::CommunityEvidence;

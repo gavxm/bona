@@ -134,6 +134,8 @@ mod tests {
                 vocab_size: Some(vocab),
                 safetensors_total_size: total_size,
                 tokenizer_class: None,
+                quant_method: None,
+                quant_bits: None,
             }),
             community: None,
             sources: vec![],

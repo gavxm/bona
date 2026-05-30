@@ -171,6 +171,7 @@ mod tests {
                 parent_id: Some(parent_id.into()),
                 parent_license: None,
                 parent_exists: Some(true),
+                parent_gated: None,
                 siblings: vec![],
             }),
             config: Some(ModelConfigEvidence {
