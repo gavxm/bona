@@ -1,3 +1,6 @@
+//! Evidence sources. Each module fetches data from a different HuggingFace
+//! endpoint and returns a [`FetchResult`] with source-specific evidence.
+
 pub mod community;
 pub mod hf_metadata;
 pub mod model_config;

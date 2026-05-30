@@ -1,3 +1,5 @@
+//! SARIF 2.1.0 output for GitHub code scanning integration.
+
 use crate::{Finding, ModelInvestigation, Severity};
 
 /// Map bona severity to SARIF level.

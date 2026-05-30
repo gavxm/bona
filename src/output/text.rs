@@ -1,3 +1,5 @@
+//! Terminal text output for investigation reports and batch results.
+
 use owo_colors::OwoColorize;
 
 use crate::{ModelInvestigation, Severity, SourceStatus};
@@ -7,6 +9,7 @@ use super::format::{format_date, format_number, hyperlink, wrap_text};
 const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
 const MAX_TAGS: usize = 5;
 
+/// Render a colored severity badge for terminal output.
 pub fn severity_badge(severity: Severity) -> String {
     match severity {
         Severity::High => format!("{}", " HIGH ".on_red().white().bold()),
@@ -287,7 +290,7 @@ fn print_summary(inv: &ModelInvestigation) {
     );
 }
 
-/// Render a batch results table with individual findings.
+/// Render a batch results table with per-model finding summaries.
 pub fn print_batch_report(results: &[ModelInvestigation], errors: u32) {
     println!();
     println!("  {}", "batch results".bold());

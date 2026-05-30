@@ -1,3 +1,6 @@
+//! Lineage consistency checks. Compares the declared base model name against
+//! the actual architecture family from config.json.
+
 use crate::{Finding, ModelInvestigation, Severity};
 
 /// Known model type → architecture family mappings.

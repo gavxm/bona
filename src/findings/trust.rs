@@ -1,3 +1,6 @@
+//! Trust signal checks. Flags new uploader accounts and zero community
+//! engagement.
+
 use chrono::Utc;
 
 use crate::{Finding, ModelInvestigation, Severity};

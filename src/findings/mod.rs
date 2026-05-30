@@ -1,3 +1,6 @@
+//! Cross-referenced finding checks. Each module implements one category of
+//! provenance finding, run sequentially against gathered evidence.
+
 mod doc_gap;
 mod gated;
 mod license;

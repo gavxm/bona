@@ -1,3 +1,6 @@
+//! Model config source. Fetches `config.json`, safetensors index, and
+//! `tokenizer_config.json` from the model repo.
+
 use serde::{Deserialize, Serialize};
 
 use crate::{BonaError, EvidenceSource};

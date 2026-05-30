@@ -1,3 +1,6 @@
+//! License inheritance checks. Compares the model's declared license against
+//! the parent model's license to detect restrictiveness violations.
+
 use crate::{Finding, ModelInvestigation, Severity};
 
 /// How restrictive a license is. Higher = more restrictive.

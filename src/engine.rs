@@ -1,3 +1,6 @@
+//! Investigation orchestration. Builds an HTTP client, fetches evidence from
+//! all sources, and runs the findings engine.
+
 use crate::sources::Evidence;
 use crate::{BonaError, ModelInvestigation, findings, sources};
 

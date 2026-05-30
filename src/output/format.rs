@@ -1,3 +1,5 @@
+//! Shared formatting utilities used by text and other output modules.
+
 use chrono::{DateTime, Utc};
 
 /// OSC 8 hyperlink for terminals that support it.
