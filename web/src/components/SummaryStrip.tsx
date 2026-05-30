@@ -2,6 +2,17 @@ import { useState } from "react";
 import { useInvestigation } from "../context/useInvestigation";
 import { ExportModal } from "./ExportModal";
 
+/** Minimal circular seal mark - appears only on clean investigations. */
+function VerifiedSeal() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1" className="text-status-ok" />
+      <circle cx="7" cy="7" r="4" stroke="currentColor" strokeWidth="0.5" className="text-status-ok opacity-50" />
+      <path d="M5 7l1.5 1.5L9.5 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-status-ok" />
+    </svg>
+  );
+}
+
 export function SummaryStrip() {
   const { investigation } = useInvestigation();
   const [showExport, setShowExport] = useState(false);
@@ -36,7 +47,10 @@ export function SummaryStrip() {
           <div className="flex items-center gap-1.5">
             <span className="text-text-muted">verdict:</span>
             {isClean ? (
-              <span className="text-status-ok font-medium">no critical issues</span>
+              <>
+                <VerifiedSeal />
+                <span className="text-status-ok font-medium">no critical issues</span>
+              </>
             ) : (
               <span className="text-severity-high font-medium">
                 {findings.length} finding{findings.length !== 1 ? "s" : ""} ({parts.join(", ")})
