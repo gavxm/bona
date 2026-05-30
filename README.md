@@ -1,13 +1,12 @@
 # Yurai
 
-> Know where your models came from.
+**yurai** — 由来, *"origin; where a thing comes from."*
 
-Yurai investigates the provenance of HuggingFace models. It traces lineage,
-cross-references licenses, and flags the gaps between what a model *claims*
-and what the evidence actually shows.
+Yurai is a provenance auditor for AI models. It traces model lineage, audits license inheritance, and flags trust gaps across Hugging Face models.
 
-Most tools show you metadata. Yurai shows you where the metadata contradicts
-itself.
+Run it from the CLI, wire it into CI, or explore findings in an investigation UI.
+
+> Know what you're depending on.
 
 ![yurai web UI](docs/UI.png)
 

@@ -6,7 +6,7 @@ use owo_colors::OwoColorize;
 
 use yurai::{ModelInvestigation, Severity, SourceStatus};
 
-const LAVENDER: owo_colors::Rgb = owo_colors::Rgb(180, 160, 230);
+const BRAND: owo_colors::Rgb = owo_colors::Rgb(140, 90, 220);
 const MAX_TAGS: usize = 5;
 
 // --- Formatting utilities ---
@@ -112,7 +112,7 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     ];
     let width = logo.iter().map(|l| l.len()).max().unwrap_or(0);
     for line in logo {
-        println!("{}", line.color(LAVENDER).bold());
+        println!("{}", line.color(BRAND).bold());
     }
     println!();
     let name = [
@@ -124,7 +124,7 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     let name_width = name.iter().map(|l| l.len()).max().unwrap_or(0);
     let name_pad = (width - name_width) / 2;
     for line in name {
-        println!("{:pad$}{}", "", line.color(LAVENDER).bold(), pad = name_pad);
+        println!("{:pad$}{}", "", line.color(BRAND).bold(), pad = name_pad);
     }
     let subtitle = "─── provenance explorer ───";
     let visual_len = subtitle.chars().count();
