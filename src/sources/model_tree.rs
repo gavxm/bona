@@ -84,7 +84,7 @@ fn extract_license(card_data: &Option<serde_json::Value>) -> Option<String> {
 /// Fetch lineage evidence: walk the base model chain up to MAX_LINEAGE_DEPTH
 /// ancestors, fetching siblings only for the direct parent.
 pub async fn fetch(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
     declared_base_model: Option<&str>,
@@ -170,14 +170,15 @@ struct ParentInfo {
     error: Option<String>,
 }
 
-/// Fetch the parent model's metadata. Returns a ParentInfo with `error` set
-/// if the fetch failed for a reason other than 404 (ex. rate limiting).
+/// Fetch the parent model's metadata. Retries on transient errors are
+/// handled by the reqwest-retry middleware on the client.
 async fn fetch_parent_info(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     parent_id: &str,
 ) -> ParentInfo {
     let url = format!("{base_url}/api/models/{parent_id}");
+
     let resp = match client.get(&url).send().await {
         Ok(r) => r,
         Err(e) => {
@@ -186,7 +187,7 @@ async fn fetch_parent_info(
                 license: None,
                 gated: None,
                 card_data: None,
-                error: Some(format!("network error: {e}")),
+                error: Some(format!("request failed: {e}")),
             };
         }
     };
@@ -215,7 +216,7 @@ async fn fetch_parent_info(
 
     if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
         return ParentInfo {
-            exists: true, // Model exists but is gated/restricted.
+            exists: true,
             license: None,
             gated: None,
             card_data: None,
@@ -257,7 +258,7 @@ async fn fetch_parent_info(
 
 /// Find sibling models (other finetunings of the same parent).
 async fn fetch_siblings(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
     parent_id: &str,

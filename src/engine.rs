@@ -1,6 +1,9 @@
 //! Investigation orchestration. Builds an HTTP client, fetches evidence from
 //! all sources, and runs the findings engine.
 
+use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
+
 use crate::sources::{Evidence, RelationKind};
 use crate::{BonaError, ModelInvestigation, findings, sources};
 
@@ -30,7 +33,13 @@ pub async fn investigate_with_base_url(
         builder = builder.default_headers(headers);
     }
 
-    let client = builder.build()?;
+    let raw_client = builder.build()?;
+
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(2);
+    let client = ClientBuilder::new(raw_client)
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        .build();
+
     let mut inv = ModelInvestigation::new(model_id);
 
     // Phase 1: fetch HF metadata (other sources depend on its results).

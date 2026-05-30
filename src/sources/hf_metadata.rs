@@ -51,7 +51,7 @@ struct HfSibling {
     rfilename: String,
 }
 
-pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> FetchResult {
+pub async fn fetch(client: &reqwest_middleware::ClientWithMiddleware, base_url: &str, model_id: &str) -> FetchResult {
     let start = std::time::Instant::now();
     let url = format!("{base_url}/api/models/{model_id}");
 

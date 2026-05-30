@@ -42,7 +42,7 @@ struct DiscussionsResponse {
 
 /// Fetch community signals.
 pub async fn fetch(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
     author: Option<&str>,
@@ -100,7 +100,7 @@ pub async fn fetch(
 /// Fetch uploader account info from the user overview endpoint.
 /// Returns None for orgs (the endpoint only works for individual users).
 async fn fetch_user_overview(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     author: &str,
 ) -> Result<Option<UserOverview>, BonaError> {
@@ -124,7 +124,7 @@ async fn fetch_user_overview(
 
 /// Fetch discussion/PR counts for this model.
 async fn fetch_discussions(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
 ) -> Result<DiscussionsResponse, BonaError> {

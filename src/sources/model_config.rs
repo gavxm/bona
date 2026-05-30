@@ -74,7 +74,7 @@ struct TokenizerConfig {
     tokenizer_class: Option<String>,
 }
 
-pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> FetchResult {
+pub async fn fetch(client: &reqwest_middleware::ClientWithMiddleware, base_url: &str, model_id: &str) -> FetchResult {
     let start = std::time::Instant::now();
 
     let mut evidence = ModelConfigEvidence::default();
@@ -130,7 +130,7 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
 
 /// Fetch and parse config.json from the model repo.
 async fn fetch_config_json(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
 ) -> Result<Option<ConfigJson>, BonaError> {
@@ -154,7 +154,7 @@ async fn fetch_config_json(
 
 /// Fetch total size from model.safetensors.index.json.
 async fn fetch_safetensors_index(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
 ) -> Result<Option<u64>, BonaError> {
@@ -178,7 +178,7 @@ async fn fetch_safetensors_index(
 
 /// Fetch tokenizer class from tokenizer_config.json.
 async fn fetch_tokenizer_config(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
 ) -> Result<Option<String>, BonaError> {

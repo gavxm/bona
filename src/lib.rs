@@ -19,6 +19,9 @@ pub enum BonaError {
     #[error("network/HTTP error talking to HuggingFace: {0}")]
     Http(#[from] reqwest::Error),
 
+    #[error("network/HTTP error talking to HuggingFace: {0}")]
+    Middleware(#[from] reqwest_middleware::Error),
+
     #[error("model not found on HuggingFace: {0}")]
     ModelNotFound(String),
 
