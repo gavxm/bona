@@ -1,11 +1,12 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "model_id": "TheBloke/Llama-2-7B-Chat-GGUF",
-  "investigated_at": "2026-05-28T11:29:54.029987+00:00",
+  "investigated_at": "2026-05-30T10:21:24.799483+00:00",
   "declared": {
     "model_id": "TheBloke/Llama-2-7B-Chat-GGUF",
     "declared_license": "llama2",
     "declared_base_model": "meta-llama/Llama-2-7b-chat-hf",
+    "base_model_relation": "unknown",
     "library": "transformers",
     "pipeline_tag": "text-generation",
     "tags": [
@@ -24,12 +25,45 @@
       "license:llama2",
       "region:us"
     ],
-    "downloads": 60379
+    "downloads": 58373,
+    "gated": "false",
+    "sha": "191239b3e26b2882fb562ffccdd1cf0f65402adb",
+    "last_modified": "2023-10-14T21:36:33.000Z",
+    "likes": 515,
+    "private": false,
+    "files": [
+      ".gitattributes",
+      "LICENSE.txt",
+      "Notice",
+      "README.md",
+      "USE_POLICY.md",
+      "config.json",
+      "llama-2-7b-chat.Q2_K.gguf",
+      "llama-2-7b-chat.Q3_K_L.gguf",
+      "llama-2-7b-chat.Q3_K_M.gguf",
+      "llama-2-7b-chat.Q3_K_S.gguf",
+      "llama-2-7b-chat.Q4_0.gguf",
+      "llama-2-7b-chat.Q4_K_M.gguf",
+      "llama-2-7b-chat.Q4_K_S.gguf",
+      "llama-2-7b-chat.Q5_0.gguf",
+      "llama-2-7b-chat.Q5_K_M.gguf",
+      "llama-2-7b-chat.Q5_K_S.gguf",
+      "llama-2-7b-chat.Q6_K.gguf",
+      "llama-2-7b-chat.Q8_0.gguf"
+    ],
+    "created_at": "2023-09-04T16:38:41.000Z"
   },
   "lineage": {
-    "parent_id": "meta-llama/Llama-2-7b-chat-hf",
-    "parent_license": "llama2",
-    "parent_exists": true,
+    "chain": [
+      {
+        "model_id": "meta-llama/Llama-2-7b-chat-hf",
+        "license": "llama2",
+        "relation": "unknown",
+        "exists": true,
+        "gated": "manual",
+        "depth": 0
+      }
+    ],
     "siblings": [
       "TheBloke/Llama-2-7B-Chat-GPTQ",
       "TheBloke/Llama-2-7B-Chat-AWQ",
@@ -59,28 +93,28 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 106
+        "fetched_ms": 134
       }
     },
     {
       "source": "model_tree",
       "status": {
         "status": "ok",
-        "fetched_ms": 108
+        "fetched_ms": 63
       }
     },
     {
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 209
+        "fetched_ms": 72
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 196
+        "fetched_ms": 83
       }
     }
   ],
@@ -89,9 +123,9 @@
       "id": "gated_derivative",
       "title": "Derivative of a gated model is publicly accessible",
       "severity": "medium",
-      "detail": "Parent model 'meta-llama/Llama-2-7b-chat-hf' uses 'llama2', which is typically distributed with access controls (gating). This derivative is publicly accessible without gating.",
+      "detail": "Parent model 'meta-llama/Llama-2-7b-chat-hf' has access controls (gating) (license: llama2). This derivative is publicly accessible without gating.",
       "reason": "Gated models have access controls for legal or safety reasons. A public derivative may bypass those restrictions.",
-      "declared_value": "llama2 (gated)",
+      "declared_value": "gated parent",
       "actual_value": "public access (no gate)",
       "evidence_url": "https://huggingface.co/meta-llama/Llama-2-7b-chat-hf"
     }

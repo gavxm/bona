@@ -20,7 +20,7 @@ const nodeTypes = {
 };
 
 function LineageGraphInner() {
-  const { investigation, highlightedGraphNodes, selectFinding, setActiveTab } =
+  const { investigation, highlightedGraphNodes, selectFinding, loadInvestigation } =
     useInvestigation();
   const { fitView } = useReactFlow();
 
@@ -136,25 +136,15 @@ function LineageGraphInner() {
     (_event, node) => {
       if (!investigation) return;
 
-      if (node.type === "sibling") {
-        window.open(`https://huggingface.co/${node.id}`, "_blank");
-        return;
-      }
-
       if (node.id === investigation.model_id) {
         selectFinding(null);
         return;
       }
 
-      // Ancestor node - show declared tab
-      const isAncestor = investigation.lineage?.chain.some(
-        (n) => n.model_id === node.id
-      );
-      if (isAncestor) {
-        setActiveTab("declared");
-      }
+      // Ancestor or sibling node - pivot to investigate that model.
+      loadInvestigation(node.id);
     },
-    [investigation, selectFinding, setActiveTab]
+    [investigation, selectFinding, loadInvestigation]
   );
 
   if (!investigation) return null;

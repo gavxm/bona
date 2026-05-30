@@ -10,8 +10,10 @@ mod sources;
 use serde::{Deserialize, Serialize};
 
 // Re-export the engine entry points.
+pub use engine::build_client;
 pub use engine::investigate;
 pub use engine::investigate_with_base_url;
+pub use engine::investigate_with_client;
 
 /// Engine errors.
 #[derive(Debug, thiserror::Error)]
