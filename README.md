@@ -40,7 +40,7 @@ cargo install bona
 ## Usage
 
 ```sh
-# investigate a model
+# Investigate a model
 bona investigate meta-llama/Llama-3.1-8B-Instruct
 
 # JSON output
@@ -49,20 +49,20 @@ bona investigate ruslanmv/Medical-Llama3-8B --json
 # SARIF output (for GitHub code scanning)
 bona investigate ruslanmv/Medical-Llama3-8B --sarif
 
-# fail CI on high-severity findings
+# Fail CI on high-severity findings
 bona investigate some/model --fail-on-high
 ```
 
 Batch mode - investigate multiple models from a file or stdin:
 
 ```sh
-# from a file
+# From a file
 bona batch --from models.txt
 
-# from stdin
+# From stdin
 echo -e "microsoft/phi-2\nruslanmv/Medical-Llama3-8B" | bona batch
 
-# batch with SARIF output
+# Batch with SARIF output
 bona batch --from models.txt --sarif results.sarif
 ```
 
