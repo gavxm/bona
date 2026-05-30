@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useRef, type ReactNode } from "react";
 import type { ModelInvestigation } from "../types";
 import { FINDING_LINKS, type CenterTab } from "../linking";
 import { InvestigationContext } from "./investigationState";
@@ -39,6 +39,12 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
   const [highlightedGraphNodes, setHighlightedGraphNodes] = useState<string[]>(initHighlights?.graphNodes ?? []);
   const [isSnapshot, setIsSnapshot] = useState(initialPermalink != null);
   const [schemaWarning, setSchemaWarning] = useState(initialPermalink?.versionMismatch ?? false);
+
+  // Navigation history for back/forward between investigations.
+  const historyBack = useRef<ModelInvestigation[]>([]);
+  const historyForward = useRef<ModelInvestigation[]>([]);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
 
   const selectFinding = useCallback(
     (id: string | null) => {
@@ -108,7 +114,55 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const goBack = useCallback(() => {
+    const prev = historyBack.current.pop();
+    if (!prev) return;
+    if (investigation) historyForward.current.push(investigation);
+    setInvestigation(prev);
+    setSelectedFindingId(null);
+    setHighlightedFields([]);
+    setHighlightedGraphNodes([]);
+    setActiveTab("declared");
+    setError(null);
+    setIsSnapshot(false);
+    setCanGoBack(historyBack.current.length > 0);
+    setCanGoForward(true);
+    const url = new URL(window.location.href);
+    url.searchParams.set("model", prev.model_id);
+    url.hash = "";
+    window.history.replaceState(null, "", url.toString());
+  }, [investigation]);
+
+  const goForward = useCallback(() => {
+    const next = historyForward.current.pop();
+    if (!next) return;
+    if (investigation) historyBack.current.push(investigation);
+    setInvestigation(next);
+    setSelectedFindingId(null);
+    setHighlightedFields([]);
+    setHighlightedGraphNodes([]);
+    setActiveTab("declared");
+    setError(null);
+    setIsSnapshot(false);
+    setCanGoBack(true);
+    setCanGoForward(historyForward.current.length > 0);
+    const url = new URL(window.location.href);
+    url.searchParams.set("model", next.model_id);
+    url.hash = "";
+    window.history.replaceState(null, "", url.toString());
+  }, [investigation]);
+
   const loadInvestigation = useCallback(async (modelId: string) => {
+    // Push current investigation onto back stack inline (avoids unstable dep on pushHistory).
+    setInvestigation((prev) => {
+      if (prev) {
+        historyBack.current.push(prev);
+        historyForward.current = [];
+        setCanGoBack(true);
+        setCanGoForward(false);
+      }
+      return prev;
+    });
     setLoading(true);
     setError(null);
     setIsSnapshot(false);
@@ -179,6 +233,10 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
         setActiveTab,
         loadInvestigation,
         setInvestigationDirect,
+        canGoBack,
+        canGoForward,
+        goBack,
+        goForward,
       }}
     >
       {children}

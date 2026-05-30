@@ -16,6 +16,31 @@ function formatTimestamp(iso: string): string {
   }
 }
 
+function NavButtons() {
+  const { canGoBack, canGoForward, goBack, goForward } = useInvestigation();
+
+  if (!canGoBack && !canGoForward) return null;
+
+  const btn = "w-6 h-6 flex items-center justify-center rounded border border-border transition-colors cursor-pointer";
+  const active = "text-text-secondary hover:text-text-primary hover:border-text-muted";
+  const disabled = "text-text-muted/30 border-border/50 cursor-default";
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <button onClick={goBack} disabled={!canGoBack} className={`${btn} ${canGoBack ? active : disabled}`}>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6.5 1.5L3 5l3.5 3.5" />
+        </svg>
+      </button>
+      <button onClick={goForward} disabled={!canGoForward} className={`${btn} ${canGoForward ? active : disabled}`}>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.5 1.5L7 5l-3.5 3.5" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export function TopBar() {
   const { investigation, isSnapshot } = useInvestigation();
 
@@ -27,6 +52,7 @@ export function TopBar() {
           <span className="text-text-primary font-semibold text-base tracking-tight">yurai</span>
           <span className="text-text-muted text-[12px] ml-2">provenance explorer</span>
         </div>
+        <NavButtons />
         {investigation && (
           <>
             <span className="text-border text-xs">|</span>

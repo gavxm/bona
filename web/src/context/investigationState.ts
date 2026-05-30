@@ -17,6 +17,10 @@ export interface InvestigationState {
   setActiveTab: (tab: CenterTab) => void;
   loadInvestigation: (modelId: string) => Promise<void>;
   setInvestigationDirect: (inv: ModelInvestigation, findingId?: string | null) => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  goBack: () => void;
+  goForward: () => void;
 }
 
 export const InvestigationContext = createContext<InvestigationState | null>(null);
