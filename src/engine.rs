@@ -1,7 +1,7 @@
 //! Investigation orchestration. Builds an HTTP client, fetches evidence from
 //! all sources, and runs the findings engine.
 
-use reqwest_middleware::ClientBuilder;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 
 use crate::sources::{Evidence, RelationKind};
@@ -9,16 +9,8 @@ use crate::{InvestigationError, ModelInvestigation, findings, sources};
 
 const HF_BASE_URL: &str = "https://huggingface.co";
 
-/// Build an investigation for the given model id.
-pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, InvestigationError> {
-    investigate_with_base_url(model_id, HF_BASE_URL).await
-}
-
-#[doc(hidden)]
-pub async fn investigate_with_base_url(
-    model_id: &str,
-    base_url: &str,
-) -> Result<ModelInvestigation, InvestigationError> {
+/// Build the default HTTP client with retry middleware and optional HF_TOKEN.
+pub fn build_client() -> Result<ClientWithMiddleware, InvestigationError> {
     let mut builder =
         reqwest::Client::builder().user_agent(concat!("yurai/", env!("CARGO_PKG_VERSION")));
 
@@ -34,12 +26,40 @@ pub async fn investigate_with_base_url(
     }
 
     let raw_client = builder.build()?;
-
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(2);
-    let client = ClientBuilder::new(raw_client)
+    Ok(ClientBuilder::new(raw_client)
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-        .build();
+        .build())
+}
 
+/// Build an investigation for the given model id.
+pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, InvestigationError> {
+    let client = build_client()?;
+    investigate_with_client(&client, model_id).await
+}
+
+/// Investigate using a pre-built HTTP client (for connection pooling).
+pub async fn investigate_with_client(
+    client: &ClientWithMiddleware,
+    model_id: &str,
+) -> Result<ModelInvestigation, InvestigationError> {
+    run_investigation(client, model_id, HF_BASE_URL).await
+}
+
+#[doc(hidden)]
+pub async fn investigate_with_base_url(
+    model_id: &str,
+    base_url: &str,
+) -> Result<ModelInvestigation, InvestigationError> {
+    let client = build_client()?;
+    run_investigation(&client, model_id, base_url).await
+}
+
+async fn run_investigation(
+    client: &ClientWithMiddleware,
+    model_id: &str,
+    base_url: &str,
+) -> Result<ModelInvestigation, InvestigationError> {
     let mut inv = ModelInvestigation::new(model_id);
 
     // Phase 1: fetch HF metadata (other sources depend on its results).

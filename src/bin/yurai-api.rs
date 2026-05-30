@@ -9,10 +9,13 @@ use axum::{
     response::{IntoResponse, Json, Response},
     routing::get,
 };
+use reqwest_middleware::ClientWithMiddleware;
 use tokio::sync::Semaphore;
 use tower_http::cors::{Any, CorsLayer};
 
 struct AppState {
+    /// Shared HTTP client for connection pooling across requests.
+    client: ClientWithMiddleware,
     /// Cap concurrent investigations to avoid overwhelming HF.
     semaphore: Semaphore,
 }
@@ -24,7 +27,10 @@ async fn main() {
         .allow_methods(Any)
         .allow_headers(Any);
 
+    let client = yurai::build_client().expect("failed to build HTTP client");
+
     let state = Arc::new(AppState {
+        client,
         semaphore: Semaphore::new(4),
     });
 
@@ -51,7 +57,7 @@ async fn investigate(
 
     let model_id = format!("{org}/{model}");
 
-    match yurai::investigate(&model_id).await {
+    match yurai::investigate_with_client(&state.client, &model_id).await {
         Ok(inv) => Json(inv).into_response(),
         Err(yurai::InvestigationError::ModelNotFound(msg)) => {
             (StatusCode::NOT_FOUND, msg).into_response()
