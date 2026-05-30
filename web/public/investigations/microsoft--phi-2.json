@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "model_id": "microsoft/phi-2",
-  "investigated_at": "2026-05-28T11:29:53.656509+00:00",
+  "investigated_at": "2026-05-30T10:21:18.924304+00:00",
   "declared": {
     "model_id": "microsoft/phi-2",
     "declared_license": "mit",
@@ -22,12 +22,36 @@
       "deploy:azure",
       "region:us"
     ],
-    "downloads": 528880
+    "downloads": 521048,
+    "gated": "false",
+    "sha": "810d367871c1d460086d9f82db8696f2e0a0fcd0",
+    "last_modified": "2025-12-08T11:35:44.000Z",
+    "likes": 3458,
+    "private": false,
+    "files": [
+      ".gitattributes",
+      "CODE_OF_CONDUCT.md",
+      "LICENSE",
+      "NOTICE.md",
+      "README.md",
+      "SECURITY.md",
+      "added_tokens.json",
+      "config.json",
+      "data_summary_card.md",
+      "generation_config.json",
+      "merges.txt",
+      "model-00001-of-00002.safetensors",
+      "model-00002-of-00002.safetensors",
+      "model.safetensors.index.json",
+      "special_tokens_map.json",
+      "tokenizer.json",
+      "tokenizer_config.json",
+      "vocab.json"
+    ],
+    "created_at": "2023-12-13T21:19:59.000Z"
   },
   "lineage": {
-    "parent_id": null,
-    "parent_license": null,
-    "parent_exists": null,
+    "chain": [],
     "siblings": []
   },
   "config": {
@@ -53,7 +77,7 @@
       "source": "hf_metadata",
       "status": {
         "status": "ok",
-        "fetched_ms": 211
+        "fetched_ms": 171
       }
     },
     {
@@ -67,14 +91,14 @@
       "source": "model_config",
       "status": {
         "status": "ok",
-        "fetched_ms": 116
+        "fetched_ms": 73
       }
     },
     {
       "source": "community_signals",
       "status": {
         "status": "ok",
-        "fetched_ms": 148
+        "fetched_ms": 86
       }
     }
   ],
