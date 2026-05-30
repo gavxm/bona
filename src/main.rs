@@ -165,39 +165,79 @@ async fn main() -> ExitCode {
                 return ExitCode::FAILURE;
             }
 
-            let mut results: Vec<ModelInvestigation> = Vec::new();
+            let total = model_ids.len();
+            eprintln!(
+                "{} {} model{}...",
+                "investigating".dimmed(),
+                total,
+                if total == 1 { "" } else { "s" }
+            );
+
+            // Investigate concurrently with a cap of 4.
+            let mut set = tokio::task::JoinSet::new();
+            let mut pending: Vec<String> = model_ids.into_iter().rev().collect();
+            type BatchResult = (usize, Result<ModelInvestigation, (String, String)>);
+            let mut results: Vec<BatchResult> = Vec::new();
+            let concurrency = 4;
+            let mut order = 0usize;
+
+            while !pending.is_empty() || !set.is_empty() {
+                while set.len() < concurrency && !pending.is_empty() {
+                    let model_id = pending.pop().unwrap();
+                    let idx = order;
+                    order += 1;
+                    set.spawn(async move {
+                        let result = bona::investigate(&model_id).await;
+                        (idx, model_id, result)
+                    });
+                }
+
+                if let Some(Ok((idx, model_id, result))) = set.join_next().await {
+                    match result {
+                        Ok(inv) => {
+                            eprintln!("  {} {}", "✓".green(), model_id.dimmed());
+                            results.push((idx, Ok(inv)));
+                        }
+                        Err(e) => {
+                            eprintln!("  {} {}: {e}", "✗".red(), model_id);
+                            results.push((idx, Err((model_id, e.to_string()))));
+                        }
+                    }
+                }
+            }
+
+            // Sort by original order.
+            results.sort_by_key(|(idx, _)| *idx);
+
+            let mut investigations: Vec<ModelInvestigation> = Vec::new();
             let mut has_high = false;
             let mut errors = 0u32;
 
-            for (i, model_id) in model_ids.iter().enumerate() {
-                eprintln!(
-                    "{} [{}/{}] {}...",
-                    "investigating".dimmed(),
-                    i + 1,
-                    model_ids.len(),
-                    model_id.cyan()
-                );
-
-                match bona::investigate(model_id).await {
+            for (_, result) in results {
+                match result {
                     Ok(inv) => {
                         if inv.findings.iter().any(|f| f.severity == Severity::High) {
                             has_high = true;
                         }
-                        results.push(inv);
+                        investigations.push(inv);
                     }
-                    Err(e) => {
-                        eprintln!("{} {model_id}: {e}", "error:".red().bold());
+                    Err(_) => {
                         errors += 1;
                     }
                 }
             }
+
+            let results = investigations;
 
             // Write SARIF to file if requested.
             if let Some(sarif_path) = &sarif {
                 let refs: Vec<&ModelInvestigation> = results.iter().collect();
                 let sarif_json = to_sarif(&refs);
                 if let Err(e) = std::fs::write(sarif_path, &sarif_json) {
-                    eprintln!("{} writing SARIF to {sarif_path}: {e}", "error:".red().bold());
+                    eprintln!(
+                        "{} writing SARIF to {sarif_path}: {e}",
+                        "error:".red().bold()
+                    );
                 } else {
                     eprintln!("{} SARIF written to {sarif_path}", "ok:".green());
                 }
@@ -621,17 +661,24 @@ fn read_model_ids(path: &str) -> Result<Vec<String>, String> {
     let reader: Box<dyn std::io::BufRead> = if path == "-" {
         Box::new(std::io::stdin().lock())
     } else {
-        let file = std::fs::File::open(path)
-            .map_err(|e| format!("could not open {path}: {e}"))?;
+        let file = std::fs::File::open(path).map_err(|e| format!("could not open {path}: {e}"))?;
         Box::new(std::io::BufReader::new(file))
     };
 
-    let ids: Vec<String> = reader
-        .lines()
-        .map_while(Result::ok)
-        .map(|l| l.trim().to_string())
-        .filter(|l| !l.is_empty() && !l.starts_with('#'))
-        .collect();
+    let mut ids = Vec::new();
+    for (line_num, line) in reader.lines().enumerate() {
+        match line {
+            Ok(l) => {
+                let trimmed = l.trim().to_string();
+                if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                    ids.push(trimmed);
+                }
+            }
+            Err(e) => {
+                return Err(format!("read error at line {}: {e}", line_num + 1));
+            }
+        }
+    }
 
     // Validate format.
     for id in &ids {
