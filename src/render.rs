@@ -230,10 +230,12 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
             label("parent", "(none declared)");
         } else {
             for node in &lineage.chain {
-                let status = if node.exists {
-                    ""
+                let status = if let Some(ref err) = node.error {
+                    format!(" ({err})")
+                } else if !node.exists {
+                    " (not found on HF)".to_string()
                 } else {
-                    " (not found on HF)"
+                    String::new()
                 };
                 let license_info = node
                     .license

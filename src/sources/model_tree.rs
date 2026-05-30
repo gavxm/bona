@@ -21,6 +21,9 @@ pub struct LineageNode {
     /// 0-indexed depth in the chain: 0 = direct parent, 1 = grandparent, etc.
     /// Display as `depth + 1` for user-facing "depth N" labels.
     pub depth: u32,
+    /// If the fetch failed, why. None means success or not-found (check `exists`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 /// Multi-hop lineage evidence.
@@ -102,31 +105,17 @@ pub async fn fetch(
         fetch_siblings(client, base_url, model_id, parent_id),
     );
 
-    let mut next_card_data: Option<serde_json::Value> = None;
-
-    match parent_result {
-        Ok(info) => {
-            evidence.chain.push(LineageNode {
-                model_id: parent_id.to_string(),
-                license: info.license,
-                relation,
-                exists: info.exists,
-                gated: info.gated,
-                depth: 0,
-            });
-            next_card_data = info.card_data;
-        }
-        Err(_) => {
-            evidence.chain.push(LineageNode {
-                model_id: parent_id.to_string(),
-                license: None,
-                relation,
-                exists: false,
-                gated: None,
-                depth: 0,
-            });
-        }
-    }
+    let info = parent_result;
+    let mut next_card_data = info.card_data;
+    evidence.chain.push(LineageNode {
+        model_id: parent_id.to_string(),
+        license: info.license,
+        relation,
+        exists: info.exists,
+        gated: info.gated,
+        depth: 0,
+        error: info.error,
+    });
 
     if let Ok(siblings) = siblings_result {
         evidence.siblings = siblings;
@@ -152,29 +141,20 @@ pub async fn fetch(
         }
         seen.insert(ancestor.model_id.clone());
 
-        match fetch_parent_info(client, base_url, &ancestor.model_id).await {
-            Ok(info) => {
-                evidence.chain.push(LineageNode {
-                    model_id: ancestor.model_id.clone(),
-                    license: info.license,
-                    relation: ancestor.relation,
-                    exists: info.exists,
-                    gated: info.gated,
-                    depth,
-                });
-                next_card_data = info.card_data;
-            }
-            Err(_) => {
-                evidence.chain.push(LineageNode {
-                    model_id: ancestor.model_id.clone(),
-                    license: None,
-                    relation: ancestor.relation,
-                    exists: false,
-                    gated: None,
-                    depth,
-                });
-                break;
-            }
+        let info = fetch_parent_info(client, base_url, &ancestor.model_id).await;
+        let has_error = info.error.is_some();
+        evidence.chain.push(LineageNode {
+            model_id: ancestor.model_id.clone(),
+            license: info.license,
+            relation: ancestor.relation,
+            exists: info.exists,
+            gated: info.gated,
+            depth,
+            error: info.error,
+        });
+        next_card_data = info.card_data;
+        if has_error {
+            break;
         }
     }
 
@@ -187,37 +167,92 @@ struct ParentInfo {
     license: Option<String>,
     gated: Option<String>,
     card_data: Option<serde_json::Value>,
+    error: Option<String>,
 }
 
-/// Fetch the parent model's metadata.
+/// Fetch the parent model's metadata. Returns a ParentInfo with `error` set
+/// if the fetch failed for a reason other than 404 (ex. rate limiting).
 async fn fetch_parent_info(
     client: &reqwest::Client,
     base_url: &str,
     parent_id: &str,
-) -> Result<ParentInfo, BonaError> {
+) -> ParentInfo {
     let url = format!("{base_url}/api/models/{parent_id}");
-    let resp = client.get(&url).send().await?;
-    if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        return Ok(ParentInfo {
+    let resp = match client.get(&url).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            return ParentInfo {
+                exists: false,
+                license: None,
+                gated: None,
+                card_data: None,
+                error: Some(format!("network error: {e}")),
+            };
+        }
+    };
+
+    let status = resp.status();
+
+    if status == reqwest::StatusCode::NOT_FOUND {
+        return ParentInfo {
             exists: false,
             license: None,
             gated: None,
             card_data: None,
-        });
+            error: None,
+        };
     }
-    let resp = resp.error_for_status()?;
-    let info: HfModelInfo = resp
-        .json()
-        .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
-    let gated = info.gated.as_ref().and_then(super::parse_gated);
-    let license = extract_license(&info.card_data);
-    Ok(ParentInfo {
-        exists: true,
-        license,
-        gated,
-        card_data: info.card_data,
-    })
+
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return ParentInfo {
+            exists: false,
+            license: None,
+            gated: None,
+            card_data: None,
+            error: Some("rate limited (429)".into()),
+        };
+    }
+
+    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+        return ParentInfo {
+            exists: true, // Model exists but is gated/restricted.
+            license: None,
+            gated: None,
+            card_data: None,
+            error: Some(format!("access denied ({status})")),
+        };
+    }
+
+    if !status.is_success() {
+        return ParentInfo {
+            exists: false,
+            license: None,
+            gated: None,
+            card_data: None,
+            error: Some(format!("HTTP {status}")),
+        };
+    }
+
+    match resp.json::<HfModelInfo>().await {
+        Ok(info) => {
+            let gated = info.gated.as_ref().and_then(super::parse_gated);
+            let license = extract_license(&info.card_data);
+            ParentInfo {
+                exists: true,
+                license,
+                gated,
+                card_data: info.card_data,
+                error: None,
+            }
+        }
+        Err(e) => ParentInfo {
+            exists: true,
+            license: None,
+            gated: None,
+            card_data: None,
+            error: Some(format!("parse error: {e}")),
+        },
+    }
 }
 
 /// Find sibling models (other finetunings of the same parent).

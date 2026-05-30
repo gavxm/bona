@@ -145,6 +145,7 @@ mod tests {
                     exists: true,
                     gated: parent_gated.map(|s| s.to_string()),
                     depth: 0,
+                    error: None,
                 }],
                 siblings: vec![],
             }),

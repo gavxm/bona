@@ -178,6 +178,7 @@ mod tests {
                     exists: true,
                     gated: None,
                     depth: 0,
+                    error: None,
                 }],
                 siblings: vec![],
             }),
