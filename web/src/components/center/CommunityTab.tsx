@@ -1,11 +1,13 @@
 import { useInvestigation } from "../../context/useInvestigation";
 import { FieldRow } from "./FieldRow";
 
-function formatRelativeDate(iso: string): string {
+/** Compute a relative label anchored to `referenceIso` (the investigation
+ *  timestamp) so the display stays stable for cached investigations. */
+function formatRelativeDate(iso: string, referenceIso?: string): string {
   try {
     const dt = new Date(iso);
-    const now = new Date();
-    const days = Math.floor((now.getTime() - dt.getTime()) / (1000 * 60 * 60 * 24));
+    const anchor = referenceIso ? new Date(referenceIso) : new Date();
+    const days = Math.floor((anchor.getTime() - dt.getTime()) / (1000 * 60 * 60 * 24));
 
     const month = dt.toLocaleString("en", { month: "short", year: "numeric" });
 
@@ -53,7 +55,7 @@ export function CommunityTab() {
       <FieldRow
         label="account created"
         field="author_created_at"
-        value={community.author_created_at ? formatRelativeDate(community.author_created_at) : null}
+        value={community.author_created_at ? formatRelativeDate(community.author_created_at, investigation?.investigated_at) : null}
       />
       <FieldRow
         label="models published"

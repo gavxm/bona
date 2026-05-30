@@ -55,12 +55,13 @@ function LineageGraphInner() {
     // Ancestor chain nodes (most distant ancestor first, then parent).
     const chain = lineage?.chain ?? [];
     const reversedChain = [...chain].reverse();
+    const nodeX = 70;
     for (const ancestor of reversedChain) {
       const af = nodeFindings.get(ancestor.model_id);
       nodes.push({
         id: ancestor.model_id,
         type: "model",
-        position: { x: 40, y },
+        position: { x: nodeX, y },
         data: {
           modelId: ancestor.model_id,
           license: ancestor.license,
@@ -94,7 +95,7 @@ function LineageGraphInner() {
     nodes.push({
       id: investigation.model_id,
       type: "model",
-      position: { x: 40, y },
+      position: { x: nodeX, y },
       data: {
         modelId: investigation.model_id,
         license: investigation.declared.declared_license,
@@ -107,14 +108,15 @@ function LineageGraphInner() {
 
     y += 120;
 
-    // Sibling nodes - stacked vertically
+    // Sibling nodes - compact stack, max 3 shown
     const parentId = chain[0]?.model_id;
-    if (lineage?.siblings) {
-      lineage.siblings.forEach((sib, i) => {
+    if (lineage?.siblings && lineage.siblings.length > 0) {
+      const visible = lineage.siblings.slice(0, 3);
+      visible.forEach((sib, i) => {
         nodes.push({
           id: sib,
           type: "sibling",
-          position: { x: 60, y: y + i * 50 },
+          position: { x: nodeX + 20, y: y + i * 40 },
           data: { modelId: sib },
         });
 
@@ -127,6 +129,17 @@ function LineageGraphInner() {
           });
         }
       });
+
+      const remaining = lineage.siblings.length - visible.length;
+      if (remaining > 0) {
+        const overflowY = y + visible.length * 40;
+        nodes.push({
+          id: "__siblings_overflow",
+          type: "sibling",
+          position: { x: nodeX + 20, y: overflowY },
+          data: { modelId: `+${remaining} more` },
+        });
+      }
     }
 
     return { nodes, edges };
@@ -140,6 +153,9 @@ function LineageGraphInner() {
         selectFinding(null);
         return;
       }
+
+      // Ignore the overflow placeholder.
+      if (node.id === "__siblings_overflow") return;
 
       // Ancestor or sibling node - pivot to investigate that model.
       loadInvestigation(node.id);

@@ -62,4 +62,34 @@ export const FINDING_LINKS: Record<string, FindingLink> = {
     centerTab: "declared",
     centerFields: ["declared_license"],
   },
+  transitive_license_violation: {
+    graphNodes: ["parent", "subject"],
+    centerTab: "declared",
+    centerFields: ["declared_license"],
+  },
+  low_engagement: {
+    graphNodes: [],
+    centerTab: "declared",
+    centerFields: ["downloads", "likes"],
+  },
+  recently_modified: {
+    graphNodes: [],
+    centerTab: "declared",
+    centerFields: ["created_at", "last_modified"],
+  },
+  undeclared_quantization: {
+    graphNodes: [],
+    centerTab: "config",
+    centerFields: ["quant_method"],
+  },
+  no_weight_files: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["files"],
+  },
+  suspicious_files: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["files"],
+  },
 };

@@ -47,6 +47,13 @@ export function ConfigTab() {
         mono
       />
       <FieldRow label="tokenizer" field="tokenizer_class" value={config.tokenizer_class} mono />
+      <FieldRow label="quant method" field="quant_method" value={config.quant_method ?? null} mono />
+      <FieldRow
+        label="quant bits"
+        field="quant_bits"
+        value={config.quant_bits?.toString() ?? null}
+        mono
+      />
     </div>
   );
 }

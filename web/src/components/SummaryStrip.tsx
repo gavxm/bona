@@ -33,7 +33,7 @@ export function SummaryStrip() {
           <span className="text-status-ok font-medium">no critical issues</span>
         ) : (
           <span className="text-severity-high font-medium">
-            {parts.join(", ")} finding{findings.length !== 1 ? "s" : ""}
+            {findings.length} finding{findings.length !== 1 ? "s" : ""} ({parts.join(", ")})
           </span>
         )}
       </div>

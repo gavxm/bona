@@ -29,6 +29,23 @@ export function DeclaredTab() {
         value={d.downloads != null ? formatNumber(d.downloads) : null}
         mono
       />
+      <FieldRow
+        label="likes"
+        field="likes"
+        value={d.likes != null ? formatNumber(d.likes) : null}
+        mono
+      />
+      <FieldRow label="gated" field="gated" value={d.gated ?? null} />
+      <FieldRow label="created" field="created_at" value={d.created_at ?? null} />
+      <FieldRow label="last modified" field="last_modified" value={d.last_modified ?? null} />
+      {d.files && d.files.length > 0 && (
+        <FieldRow
+          label="files"
+          field="files"
+          value={`${d.files.length} file${d.files.length !== 1 ? "s" : ""}`}
+          mono
+        />
+      )}
       {d.tags.length > 0 && (
         <div className="px-4 py-2 border-l-3 border-l-transparent">
           <span className="text-text-secondary text-xs w-36 inline-block">tags</span>

@@ -50,12 +50,12 @@ export function ModelNode({ data }: NodeProps<ModelNodeType>) {
       )}
     >
       <div className={clsx(
-        "font-mono text-text-primary truncate max-w-35",
+        "font-mono text-text-primary truncate max-w-40",
         data.highlighted ? "text-xs font-semibold" : "text-[11px]"
       )}>
         {shortId}
       </div>
-      <div className="text-[9px] text-text-secondary truncate max-w-35">{data.modelId}</div>
+      <div className="text-[9px] text-text-secondary truncate max-w-40">{data.modelId}</div>
       {data.license && (
         <span className="inline-block mt-0.5 px-1 py-0 text-[9px] rounded bg-bg-base text-text-primary border border-text-muted/40">
           {data.license}
