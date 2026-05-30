@@ -1,5 +1,5 @@
 import { useInvestigation } from "../context/useInvestigation";
-import { GalleryPicker } from "./GalleryPicker";
+import { ModelSearch } from "./ModelSearch";
 
 function formatTimestamp(iso: string): string {
   try {
@@ -39,7 +39,7 @@ export function TopBar() {
           </>
         )}
       </div>
-      <GalleryPicker />
+      <ModelSearch />
     </div>
   );
 }
