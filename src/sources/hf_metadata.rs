@@ -1,3 +1,6 @@
+//! HF API metadata source. Fetches the model card, license, base model,
+//! tags, and download count from `/api/models/{id}`.
+
 use serde::Deserialize;
 
 use crate::{BonaError, DeclaredFacts, EvidenceSource};

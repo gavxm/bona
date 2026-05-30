@@ -1,3 +1,5 @@
+//! Documentation gap checks. Flags missing license or base model declarations.
+
 use crate::{Finding, ModelInvestigation, Severity};
 
 /// Check for documentation gaps: missing card fields that should be present.

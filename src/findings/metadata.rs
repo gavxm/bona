@@ -1,3 +1,6 @@
+//! Metadata anomaly checks. Detects mismatches between tags and config,
+//! and weight size anomalies.
+
 use crate::{Finding, ModelInvestigation, Severity};
 
 /// Check for metadata anomalies: mismatches between declared and actual values.

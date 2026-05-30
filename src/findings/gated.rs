@@ -1,3 +1,6 @@
+//! Gated-derivative detection. Flags publicly accessible models that derive
+//! from parents with gated access controls.
+
 use crate::{EvidenceSource, Finding, ModelInvestigation, Severity, SourceStatus};
 
 /// Check for gated-derivative patterns: a publicly accessible model that

@@ -1,3 +1,6 @@
+//! Model tree source. Fetches parent model metadata, license, and sibling
+//! models from the HuggingFace API.
+
 use serde::{Deserialize, Serialize};
 
 use crate::{BonaError, EvidenceSource};

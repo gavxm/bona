@@ -1,3 +1,6 @@
+//! Community signals source. Fetches uploader account info and discussion
+//! counts from the HuggingFace API.
+
 use serde::{Deserialize, Serialize};
 
 use crate::{BonaError, EvidenceSource};
