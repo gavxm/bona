@@ -151,13 +151,20 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
             .as_deref()
             .unwrap_or("(none declared)"),
     );
-    label(
-        "base model",
-        inv.declared
+    {
+        let base_model = inv
+            .declared
             .declared_base_model
             .as_deref()
-            .unwrap_or("(none declared)"),
-    );
+            .unwrap_or("(none declared)");
+        let relation_label = inv
+            .declared
+            .base_model_relation
+            .filter(|r| *r != bona::RelationKind::Unknown)
+            .map(|r| format!(" ({r})"))
+            .unwrap_or_default();
+        label("base model", &format!("{base_model}{relation_label}"));
+    }
     label(
         "library",
         inv.declared.library.as_deref().unwrap_or("(unknown)"),
@@ -169,6 +176,35 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
             .map(format_number)
             .unwrap_or_else(|| "(unknown)".into()),
     );
+    if let Some(likes) = inv.declared.likes {
+        label("likes", &format_number(likes));
+    }
+    if let Some(ref gated) = inv.declared.gated
+        && gated != "false"
+    {
+        label("gated", gated);
+    }
+    if let Some(ref modified) = inv.declared.last_modified {
+        label("last modified", &format_date(modified));
+    }
+    if let Some(ref sha) = inv.declared.sha {
+        let short = if sha.len() > 8 { &sha[..8] } else { sha };
+        label("sha", short);
+    }
+    if !inv.declared.files.is_empty() {
+        let weight_count = inv
+            .declared
+            .files
+            .iter()
+            .filter(|f| bona::WEIGHT_EXTENSIONS.iter().any(|ext| f.ends_with(ext)))
+            .count();
+        let total = inv.declared.files.len();
+        if weight_count > 0 {
+            label("files", &format!("{total} files ({weight_count} weights)"));
+        } else {
+            label("files", &format!("{total} files (no weights)"));
+        }
+    }
     if !inv.declared.tags.is_empty() {
         let tags = &inv.declared.tags;
         if tags.len() <= MAX_TAGS {
@@ -235,6 +271,13 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
         if let Some(size) = config.safetensors_total_size {
             let gb = size as f64 / 1_000_000_000.0;
             label("weight size", &format!("{gb:.1} GB"));
+        }
+        if let Some(ref method) = config.quant_method {
+            let bits_info = config
+                .quant_bits
+                .map(|b| format!(" ({b}-bit)"))
+                .unwrap_or_default();
+            label("quantization", &format!("{method}{bits_info}"));
         }
         if let Some(tok) = &config.tokenizer_class {
             label("tokenizer", tok);

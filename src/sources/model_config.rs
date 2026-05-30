@@ -21,6 +21,12 @@ pub struct ModelConfigEvidence {
     pub safetensors_total_size: Option<u64>,
     /// Tokenizer class from tokenizer_config.json.
     pub tokenizer_class: Option<String>,
+    /// Quantization method from config.json (ex. "gptq", "awq").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quant_method: Option<String>,
+    /// Quantization bit width (ex. 4, 8).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quant_bits: Option<u64>,
 }
 
 /// Subset of config.json.
@@ -36,6 +42,16 @@ struct ConfigJson {
     vocab_size: Option<u64>,
     #[serde(default)]
     num_hidden_layers: Option<u64>,
+    #[serde(default)]
+    quantization_config: Option<QuantizationConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+struct QuantizationConfig {
+    #[serde(default)]
+    quant_method: Option<String>,
+    #[serde(default)]
+    bits: Option<u64>,
 }
 
 /// The safetensors index file metadata.
@@ -77,6 +93,10 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
         evidence.hidden_size = config.hidden_size;
         evidence.vocab_size = config.vocab_size;
         evidence.num_hidden_layers = config.num_hidden_layers;
+        if let Some(ref qc) = config.quantization_config {
+            evidence.quant_method = qc.quant_method.clone();
+            evidence.quant_bits = qc.bits;
+        }
         any_succeeded = true;
     }
 

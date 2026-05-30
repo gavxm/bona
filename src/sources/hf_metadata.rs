@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{BonaError, DeclaredFacts, EvidenceSource};
 
-use super::{Evidence, FetchResult, extract_base_model};
+use super::{Evidence, FetchResult, extract_base_models, parse_gated};
 
 /// Evidence extracted from the HF API metadata endpoint.
 pub struct HfMetadataEvidence {
@@ -28,6 +28,27 @@ struct HfModelInfo {
     /// Free-form card metadata. Base model lives in here (string or list).
     #[serde(rename = "cardData", default)]
     card_data: Option<serde_json::Value>,
+    /// Access control: false, "auto", or "manual".
+    #[serde(default)]
+    gated: Option<serde_json::Value>,
+    #[serde(default)]
+    sha: Option<String>,
+    #[serde(rename = "lastModified", default)]
+    last_modified: Option<String>,
+    #[serde(default)]
+    likes: Option<u64>,
+    #[serde(default)]
+    private: Option<bool>,
+    /// File listing. Each entry has an `rfilename` with the relative path.
+    #[serde(default)]
+    siblings: Option<Vec<HfSibling>>,
+    #[serde(rename = "createdAt", default)]
+    created_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct HfSibling {
+    rfilename: String,
 }
 
 pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> FetchResult {
@@ -56,14 +77,32 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
                 .and_then(|cd| cd.get("license"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
+            let gated = info.gated.as_ref().and_then(parse_gated);
+            let files: Vec<String> = info
+                .siblings
+                .unwrap_or_default()
+                .into_iter()
+                .map(|s| s.rfilename)
+                .collect();
+            let base_models = extract_base_models(&info.card_data);
+            let declared_base_model = base_models.first().map(|p| p.model_id.clone());
+            let base_model_relation = base_models.first().map(|p| p.relation);
             let declared = DeclaredFacts {
                 model_id: model_id.to_string(),
                 declared_license: card_license.or(info.license),
-                declared_base_model: extract_base_model(&info.card_data),
+                declared_base_model,
+                base_model_relation,
                 library: info.library_name,
                 pipeline_tag: info.pipeline_tag,
                 tags: info.tags,
                 downloads: info.downloads,
+                gated,
+                sha: info.sha,
+                last_modified: info.last_modified,
+                likes: info.likes,
+                private: info.private,
+                files,
+                created_at: info.created_at,
             };
             let ms = start.elapsed().as_millis() as u64;
             FetchResult::ok(

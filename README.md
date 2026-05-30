@@ -20,11 +20,13 @@ itself.
 - **Lineage inconsistencies**: declared base model doesn't match the
   architecture in config.json
 - **Gated-derivative detection**: public models derived from gated parents,
-  bypassing access controls
+  bypassing access controls (uses the direct HF `gated` field, falls back
+  to license heuristics)
 - **Documentation gaps**: missing license or base model declarations
-- **Trust signals**: new uploader accounts, zero community engagement
+- **Trust signals**: new uploader accounts, zero community engagement, high
+  downloads with zero likes, recently modified old models
 - **Metadata anomalies**: weight sizes that don't match the declared
-  architecture
+  architecture, undeclared quantization, suspicious or missing weight files
 
 Each finding includes a severity, a reason explaining *why* it matters, and
 the raw declared-vs-actual values that triggered it.
@@ -107,12 +109,12 @@ Set `fail-on-high: true` to block merges when HIGH severity findings exist.
 Bona fetches evidence from four HuggingFace sources concurrently, then runs
 cross-referenced checks across them:
 
-| Source                    | What it provides                          |
-| ------------------------- | ----------------------------------------- |
-| HF metadata               | license, base model, tags, downloads      |
-| Model tree                | parent model's license, sibling models    |
-| config.json + safetensors | architecture, parameters, weight size     |
-| Community signals         | uploader account age, discussion activity |
+| Source                    | What it provides                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| HF metadata               | license, base model, tags, downloads, likes, gated status, file listing, timestamps |
+| Model tree                | parent model's license and gated status, sibling models                              |
+| config.json + safetensors | architecture, parameters, weight size, quantization config                           |
+| Community signals         | uploader account age, discussion activity                                            |
 
 The key insight is **gap-as-signal**: contradictions between sources are the
 findings, not incidental noise.
@@ -120,10 +122,12 @@ findings, not incidental noise.
 ## Architecture
 
 ```text
-src/lib.rs       :engine library
-src/main.rs      :CLI
-src/sources/     :evidence fetchers
-src/findings/    :cross-referenced checks
+src/lib.rs       :types, public API, schema
+src/engine.rs    :investigation orchestration
+src/main.rs      :CLI, batch mode, SARIF output
+src/render.rs    :terminal text rendering
+src/sources/     :evidence fetchers (HF metadata, model tree, config, community)
+src/findings/    :cross-referenced checks (license, lineage, gated, trust, metadata, doc gaps)
 web/             :React + Vite + Tailwind
 ```
 

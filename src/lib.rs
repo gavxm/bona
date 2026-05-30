@@ -27,7 +27,21 @@ pub enum BonaError {
 }
 
 /// Bump when [`ModelInvestigation`] changes in a breaking way.
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
+
+/// Weight file extensions recognized in model repos.
+pub const WEIGHT_EXTENSIONS: &[&str] = &[
+    ".safetensors",
+    ".bin",
+    ".pt",
+    ".pth",
+    ".gguf",
+    ".ggml",
+    ".onnx",
+    ".tflite",
+    ".h5",
+    ".msgpack",
+];
 
 /// Ordered low-to-high so findings can be sorted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -101,12 +115,35 @@ pub struct DeclaredFacts {
     pub model_id: String,
     pub declared_license: Option<String>,
     pub declared_base_model: Option<String>,
+    /// How this model relates to its base model (finetune, quantized, etc.).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_model_relation: Option<sources::RelationKind>,
     pub library: Option<String>,
     pub pipeline_tag: Option<String>,
     pub tags: Vec<String>,
     pub downloads: Option<u64>,
+    /// Access control status: "false", "auto", or "manual".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gated: Option<String>,
+    /// Latest commit hash.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sha: Option<String>,
+    /// ISO 8601 timestamp of last modification.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_modified: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private: Option<bool>,
+    /// Filenames in the model repo.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files: Vec<String>,
+    /// ISO 8601 timestamp of model creation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
 }
 
+pub use sources::RelationKind;
 pub use sources::community::CommunityEvidence;
 pub use sources::model_config::ModelConfigEvidence;
 pub use sources::model_tree::ModelTreeEvidence;
