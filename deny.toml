@@ -13,6 +13,7 @@ allow = [
     "AGPL-3.0-only",
     "OpenSSL",
     "Zlib",
+    "CDLA-Permissive-2.0",
 ]
 
 [bans]
