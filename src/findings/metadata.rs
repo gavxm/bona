@@ -278,10 +278,7 @@ mod tests {
     #[test]
     fn dll_is_not_flagged_as_suspicious() {
         let mut inv = make_inv(4096, 32, 32000, None);
-        inv.declared.files = vec![
-            "model.safetensors".into(),
-            "onnxruntime.dll".into(),
-        ];
+        inv.declared.files = vec!["model.safetensors".into(), "onnxruntime.dll".into()];
         check(&mut inv);
         assert!(!inv.findings.iter().any(|f| f.id == "suspicious_files"));
     }

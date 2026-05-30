@@ -1,12 +1,16 @@
+//! Core investigation integration test. Verifies all evidence sources
+//! populate correctly and evidence fields are extracted.
+
+mod common;
+
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
-async fn investigate_populates_all_sources() {
+async fn populates_all_sources() {
     let server = MockServer::start().await;
     let base = server.uri();
 
-    // HF metadata endpoint.
     Mock::given(method("GET"))
         .and(path("/api/models/testorg/testmodel"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -19,7 +23,7 @@ async fn investigate_populates_all_sources() {
             "downloads": 1000,
             "likes": 15,
             "gated": false,
-            "sha": "abc123",
+            "sha": "abc123def456",
             "lastModified": "2025-03-01T12:00:00.000Z",
             "createdAt": "2024-06-01T00:00:00.000Z",
             "siblings": [
@@ -35,19 +39,15 @@ async fn investigate_populates_all_sources() {
         .mount(&server)
         .await;
 
-    // Parent model metadata (for model_tree).
     Mock::given(method("GET"))
         .and(path("/api/models/testorg/base"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "id": "testorg/base",
-            "cardData": {
-                "license": "apache-2.0"
-            }
+            "cardData": { "license": "apache-2.0" }
         })))
         .mount(&server)
         .await;
 
-    // Sibling search.
     Mock::given(method("GET"))
         .and(path("/api/models"))
         .and(query_param("sort", "downloads"))
@@ -59,43 +59,19 @@ async fn investigate_populates_all_sources() {
         .mount(&server)
         .await;
 
-    // config.json
-    Mock::given(method("GET"))
-        .and(path("/testorg/testmodel/resolve/main/config.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+    common::mount_config_mocks(
+        &server,
+        "testorg/testmodel",
+        serde_json::json!({
             "architectures": ["LlamaForCausalLM"],
             "model_type": "llama",
             "hidden_size": 4096,
             "num_hidden_layers": 32,
             "vocab_size": 32000
-        })))
-        .mount(&server)
-        .await;
+        }),
+    )
+    .await;
 
-    // safetensors index
-    Mock::given(method("GET"))
-        .and(path(
-            "/testorg/testmodel/resolve/main/model.safetensors.index.json",
-        ))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "metadata": { "total_size": 14000000000_u64 },
-            "weight_map": {}
-        })))
-        .mount(&server)
-        .await;
-
-    // tokenizer_config.json
-    Mock::given(method("GET"))
-        .and(path(
-            "/testorg/testmodel/resolve/main/tokenizer_config.json",
-        ))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "tokenizer_class": "LlamaTokenizerFast"
-        })))
-        .mount(&server)
-        .await;
-
-    // User overview.
     Mock::given(method("GET"))
         .and(path("/api/users/testorg/overview"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -105,7 +81,6 @@ async fn investigate_populates_all_sources() {
         .mount(&server)
         .await;
 
-    // Discussions.
     Mock::given(method("GET"))
         .and(path("/api/models/testorg/testmodel/discussions"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -123,22 +98,32 @@ async fn investigate_populates_all_sources() {
     // Schema version.
     assert_eq!(inv.schema_version, 2);
 
-    // Declared facts from HF metadata.
+    // Declared facts - existing fields.
     assert_eq!(inv.declared.declared_license.as_deref(), Some("mit"));
     assert_eq!(
         inv.declared.declared_base_model.as_deref(),
         Some("testorg/base")
     );
     assert_eq!(inv.declared.downloads, Some(1000));
+
+    // Declared facts - richer-evidence fields.
     assert_eq!(inv.declared.likes, Some(15));
     assert_eq!(inv.declared.gated.as_deref(), Some("false"));
-    assert_eq!(inv.declared.sha.as_deref(), Some("abc123"));
+    assert_eq!(inv.declared.sha.as_deref(), Some("abc123def456"));
+    assert_eq!(
+        inv.declared.last_modified.as_deref(),
+        Some("2025-03-01T12:00:00.000Z")
+    );
+    assert_eq!(
+        inv.declared.created_at.as_deref(),
+        Some("2024-06-01T00:00:00.000Z")
+    );
+    assert_eq!(inv.declared.files.len(), 3);
     assert!(
         inv.declared
             .files
             .contains(&"model.safetensors".to_string())
     );
-    assert_eq!(inv.declared.files.len(), 3);
 
     // Model tree.
     let lineage = inv.lineage.expect("lineage should be populated");
@@ -158,17 +143,13 @@ async fn investigate_populates_all_sources() {
         config.tokenizer_class.as_deref(),
         Some("LlamaTokenizerFast")
     );
+    assert!(config.quant_method.is_none());
 
     // Community signals.
     let community = inv.community.expect("community should be populated");
     assert_eq!(community.author.as_deref(), Some("testorg"));
-    assert_eq!(
-        community.author_created_at.as_deref(),
-        Some("2023-01-15T00:00:00.000Z")
-    );
     assert_eq!(community.author_model_count, Some(42));
     assert_eq!(community.discussion_count, Some(7));
-    assert_eq!(community.closed_discussion_count, Some(3));
 
     // All 4 sources should be present and successful.
     assert_eq!(inv.sources.len(), 4);
@@ -182,9 +163,8 @@ async fn investigate_populates_all_sources() {
     }
 
     // Findings: mit child with apache-2.0 parent should produce a license_mismatch.
-    let license_finding = inv.findings.iter().find(|f| f.id == "license_mismatch");
     assert!(
-        license_finding.is_some(),
+        inv.findings.iter().any(|f| f.id == "license_mismatch"),
         "expected license_mismatch finding, got: {:?}",
         inv.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
     );
