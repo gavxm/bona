@@ -101,6 +101,9 @@ pub struct DeclaredFacts {
     pub model_id: String,
     pub declared_license: Option<String>,
     pub declared_base_model: Option<String>,
+    /// How this model relates to its base model (finetune, quantized, etc.).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_model_relation: Option<sources::RelationKind>,
     pub library: Option<String>,
     pub pipeline_tag: Option<String>,
     pub tags: Vec<String>,
@@ -129,6 +132,7 @@ pub struct DeclaredFacts {
 pub use sources::community::CommunityEvidence;
 pub use sources::model_config::ModelConfigEvidence;
 pub use sources::model_tree::ModelTreeEvidence;
+pub use sources::RelationKind;
 
 /// The investigation document. CLI prints it, web UI renders it, gallery
 /// caches it as JSON.

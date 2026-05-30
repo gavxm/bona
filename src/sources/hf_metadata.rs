@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{BonaError, DeclaredFacts, EvidenceSource};
 
-use super::{Evidence, FetchResult, extract_base_model};
+use super::{Evidence, FetchResult, extract_base_models};
 
 /// Evidence extracted from the HF API metadata endpoint.
 pub struct HfMetadataEvidence {
@@ -88,10 +88,14 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
                 .into_iter()
                 .map(|s| s.rfilename)
                 .collect();
+            let base_models = extract_base_models(&info.card_data);
+            let declared_base_model = base_models.first().map(|p| p.model_id.clone());
+            let base_model_relation = base_models.first().map(|p| p.relation);
             let declared = DeclaredFacts {
                 model_id: model_id.to_string(),
                 declared_license: card_license.or(info.license),
-                declared_base_model: extract_base_model(&info.card_data),
+                declared_base_model,
+                base_model_relation,
                 library: info.library_name,
                 pipeline_tag: info.pipeline_tag,
                 tags: info.tags,

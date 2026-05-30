@@ -5,6 +5,8 @@ use crate::{Finding, ModelInvestigation, Severity};
 
 /// Check for metadata anomalies: mismatches between declared and actual values.
 pub fn check(inv: &mut ModelInvestigation) {
+    check_files(inv);
+
     let config = match &inv.config {
         Some(c) => c,
         None => return,
@@ -41,6 +43,39 @@ pub fn check(inv: &mut ModelInvestigation) {
                     )),
                 });
             }
+        }
+    }
+
+    // Undeclared quantization: config has quantization_config but no quant tag.
+    if let Some(ref method) = config.quant_method {
+        let quant_tags = ["gptq", "awq", "bnb", "bitsandbytes", "exl2", "gguf", "eetq"];
+        let tags_lower: Vec<String> = inv.declared.tags.iter().map(|t| t.to_lowercase()).collect();
+        let has_quant_tag = tags_lower
+            .iter()
+            .any(|t| quant_tags.iter().any(|q| t.contains(q)));
+        if !has_quant_tag {
+            let bits_info = config
+                .quant_bits
+                .map(|b| format!(" ({b}-bit)"))
+                .unwrap_or_default();
+            inv.findings.push(Finding {
+                id: "undeclared_quantization".into(),
+                title: "Quantization not declared in tags".into(),
+                severity: Severity::Low,
+                detail: format!(
+                    "config.json has quantization_config with method '{method}'{bits_info} \
+                     but no quantization-related tag is present.",
+                ),
+                reason: "Undeclared quantization makes it harder for users to know \
+                         they are downloading a quantized model rather than the original."
+                    .into(),
+                declared_value: Some(format!("tags: [{}]", inv.declared.tags.join(", "))),
+                actual_value: Some(format!("quant_method: {method}{bits_info}")),
+                evidence_url: Some(format!(
+                    "https://huggingface.co/{}/blob/main/config.json",
+                    inv.model_id,
+                )),
+            });
         }
     }
 
@@ -88,6 +123,82 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 }
 
+/// Weight file extensions we expect in a model repo.
+const WEIGHT_EXTENSIONS: &[&str] = &[
+    ".safetensors",
+    ".bin",
+    ".pt",
+    ".pth",
+    ".gguf",
+    ".ggml",
+    ".onnx",
+    ".tflite",
+    ".h5",
+    ".msgpack",
+];
+
+/// File extensions that should not appear in a model repo.
+const SUSPICIOUS_EXTENSIONS: &[&str] = &[".exe", ".dll", ".bat", ".cmd", ".msi", ".scr"];
+
+/// Check file listing for anomalies.
+fn check_files(inv: &mut ModelInvestigation) {
+    if inv.declared.files.is_empty() {
+        return;
+    }
+
+    let has_weights = inv
+        .declared
+        .files
+        .iter()
+        .any(|f| WEIGHT_EXTENSIONS.iter().any(|ext| f.ends_with(ext)));
+
+    if !has_weights {
+        inv.findings.push(Finding {
+            id: "no_weight_files".into(),
+            title: "No model weight files found".into(),
+            severity: Severity::Medium,
+            detail: format!(
+                "Model repo contains {} files but none with recognized weight \
+                 extensions (.safetensors, .bin, .gguf, etc.).",
+                inv.declared.files.len(),
+            ),
+            reason: "A model repo without weight files may be a placeholder, \
+                     a misconfigured upload, or an attempt to distribute \
+                     non-model content."
+                .into(),
+            declared_value: None,
+            actual_value: Some(format!("{} files, no weights", inv.declared.files.len())),
+            evidence_url: Some(format!("https://huggingface.co/{}/tree/main", inv.model_id)),
+        });
+    }
+
+    let suspicious: Vec<&str> = inv
+        .declared
+        .files
+        .iter()
+        .filter(|f| SUSPICIOUS_EXTENSIONS.iter().any(|ext| f.ends_with(ext)))
+        .map(|s| s.as_str())
+        .collect();
+
+    if !suspicious.is_empty() {
+        inv.findings.push(Finding {
+            id: "suspicious_files".into(),
+            title: "Suspicious file types in model repo".into(),
+            severity: Severity::Medium,
+            detail: format!(
+                "Model repo contains files with suspicious extensions: {}",
+                suspicious.join(", "),
+            ),
+            reason: "Executable files in model repositories are unexpected and \
+                     could indicate malicious content distribution."
+                .into(),
+            declared_value: None,
+            actual_value: Some(suspicious.join(", ")),
+            evidence_url: Some(format!("https://huggingface.co/{}/tree/main", inv.model_id)),
+        });
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,6 +219,53 @@ mod tests {
         check(&mut inv);
         let finding = inv.findings.iter().find(|f| f.id == "weight_size_anomaly");
         assert!(finding.is_none());
+    }
+
+    #[test]
+    fn undeclared_quantization_detected() {
+        let mut inv = make_inv(4096, 32, 32000, Some(14_000_000_000));
+        inv.config.as_mut().unwrap().quant_method = Some("gptq".into());
+        inv.config.as_mut().unwrap().quant_bits = Some(4);
+        // Tags don't include any quant tag.
+        inv.declared.tags = vec!["transformers".into(), "llama".into()];
+        check(&mut inv);
+        assert!(inv.findings.iter().any(|f| f.id == "undeclared_quantization"));
+    }
+
+    #[test]
+    fn no_undeclared_quantization_when_tagged() {
+        let mut inv = make_inv(4096, 32, 32000, Some(14_000_000_000));
+        inv.config.as_mut().unwrap().quant_method = Some("gptq".into());
+        inv.declared.tags = vec!["transformers".into(), "gptq".into()];
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "undeclared_quantization"));
+    }
+
+    #[test]
+    fn no_weight_files_detected() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec!["README.md".into(), "config.json".into()];
+        check(&mut inv);
+        assert!(inv.findings.iter().any(|f| f.id == "no_weight_files"));
+    }
+
+    #[test]
+    fn no_finding_when_weights_present() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec!["README.md".into(), "model.safetensors".into()];
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "no_weight_files"));
+    }
+
+    #[test]
+    fn suspicious_files_detected() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec![
+            "model.safetensors".into(),
+            "payload.exe".into(),
+        ];
+        check(&mut inv);
+        assert!(inv.findings.iter().any(|f| f.id == "suspicious_files"));
     }
 
     fn make_inv(

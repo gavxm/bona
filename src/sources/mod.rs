@@ -99,13 +99,6 @@ pub fn extract_base_models(card_data: &Option<serde_json::Value>) -> Vec<ParsedB
     }
 }
 
-/// Pull the first `base_model` out of HF cardData. Convenience wrapper
-/// for callers that only need the primary parent ID.
-pub fn extract_base_model(card_data: &Option<serde_json::Value>) -> Option<String> {
-    extract_base_models(card_data)
-        .first()
-        .map(|p| p.model_id.clone())
-}
 
 /// The result of fetching a single evidence source.
 pub struct FetchResult {
@@ -154,14 +147,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extract_base_model_handles_string_and_list() {
+    fn extract_base_models_compat_with_old_string_and_list() {
         let s = serde_json::json!({ "base_model": "org/model" });
-        assert_eq!(extract_base_model(&Some(s)), Some("org/model".to_string()));
+        let result = extract_base_models(&Some(s));
+        assert_eq!(result[0].model_id, "org/model");
 
         let l = serde_json::json!({ "base_model": ["org/model", "other"] });
-        assert_eq!(extract_base_model(&Some(l)), Some("org/model".to_string()));
+        let result = extract_base_models(&Some(l));
+        assert_eq!(result[0].model_id, "org/model");
+        assert_eq!(result.len(), 2);
 
-        assert_eq!(extract_base_model(&None), None);
+        assert!(extract_base_models(&None).is_empty());
     }
 
     #[test]
