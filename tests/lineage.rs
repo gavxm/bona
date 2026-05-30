@@ -261,7 +261,11 @@ async fn chain_stops_at_max_depth() {
         lineage.chain.len(),
         bona::MAX_LINEAGE_DEPTH as usize,
         "chain should be capped at MAX_LINEAGE_DEPTH, got {:?}",
-        lineage.chain.iter().map(|n| &n.model_id).collect::<Vec<_>>()
+        lineage
+            .chain
+            .iter()
+            .map(|n| &n.model_id)
+            .collect::<Vec<_>>()
     );
 }
 

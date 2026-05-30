@@ -18,7 +18,8 @@ pub struct LineageNode {
     pub relation: RelationKind,
     pub exists: bool,
     pub gated: Option<String>,
-    /// 0 = direct parent, 1 = grandparent, etc.
+    /// 0-indexed depth in the chain: 0 = direct parent, 1 = grandparent, etc.
+    /// Display as `depth + 1` for user-facing "depth N" labels.
     pub depth: u32,
 }
 
@@ -104,16 +105,16 @@ pub async fn fetch(
     let mut next_card_data: Option<serde_json::Value> = None;
 
     match parent_result {
-        Ok((exists, license, gated, card_data)) => {
+        Ok(info) => {
             evidence.chain.push(LineageNode {
                 model_id: parent_id.to_string(),
-                license,
+                license: info.license,
                 relation,
-                exists,
-                gated,
+                exists: info.exists,
+                gated: info.gated,
                 depth: 0,
             });
-            next_card_data = card_data;
+            next_card_data = info.card_data;
         }
         Err(_) => {
             evidence.chain.push(LineageNode {
@@ -136,11 +137,10 @@ pub async fn fetch(
     seen.insert(model_id.to_string());
     seen.insert(parent_id.to_string());
 
+    // Each hop depends on the previous response's base model, so these are
+    // inherently sequential. MAX_LINEAGE_DEPTH caps total API calls.
     for depth in 1..MAX_LINEAGE_DEPTH {
-        let ancestors = match &next_card_data {
-            Some(cd) => super::extract_base_models(&Some(cd.clone())),
-            None => break,
-        };
+        let ancestors = super::extract_base_models(&next_card_data);
 
         let ancestor = match ancestors.first() {
             Some(a) => a,
@@ -153,16 +153,16 @@ pub async fn fetch(
         seen.insert(ancestor.model_id.clone());
 
         match fetch_parent_info(client, base_url, &ancestor.model_id).await {
-            Ok((exists, license, gated, card_data)) => {
+            Ok(info) => {
                 evidence.chain.push(LineageNode {
                     model_id: ancestor.model_id.clone(),
-                    license,
+                    license: info.license,
                     relation: ancestor.relation,
-                    exists,
-                    gated,
+                    exists: info.exists,
+                    gated: info.gated,
                     depth,
                 });
-                next_card_data = card_data;
+                next_card_data = info.card_data;
             }
             Err(_) => {
                 evidence.chain.push(LineageNode {
@@ -182,24 +182,28 @@ pub async fn fetch(
     FetchResult::ok(EvidenceSource::ModelTree, ms, Evidence::ModelTree(evidence))
 }
 
-/// Fetch the parent model's metadata. Returns (exists, license, gated, card_data).
+struct ParentInfo {
+    exists: bool,
+    license: Option<String>,
+    gated: Option<String>,
+    card_data: Option<serde_json::Value>,
+}
+
+/// Fetch the parent model's metadata.
 async fn fetch_parent_info(
     client: &reqwest::Client,
     base_url: &str,
     parent_id: &str,
-) -> Result<
-    (
-        bool,
-        Option<String>,
-        Option<String>,
-        Option<serde_json::Value>,
-    ),
-    BonaError,
-> {
+) -> Result<ParentInfo, BonaError> {
     let url = format!("{base_url}/api/models/{parent_id}");
     let resp = client.get(&url).send().await?;
     if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        return Ok((false, None, None, None));
+        return Ok(ParentInfo {
+            exists: false,
+            license: None,
+            gated: None,
+            card_data: None,
+        });
     }
     let resp = resp.error_for_status()?;
     let info: HfModelInfo = resp
@@ -208,7 +212,12 @@ async fn fetch_parent_info(
         .map_err(|e| BonaError::Parse(e.to_string()))?;
     let gated = info.gated.as_ref().and_then(super::parse_gated);
     let license = extract_license(&info.card_data);
-    Ok((true, license, gated, info.card_data))
+    Ok(ParentInfo {
+        exists: true,
+        license,
+        gated,
+        card_data: info.card_data,
+    })
 }
 
 /// Find sibling models (other finetunings of the same parent).
