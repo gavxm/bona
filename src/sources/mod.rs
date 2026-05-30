@@ -8,7 +8,7 @@ pub mod model_tree;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{BonaError, EvidenceSource, SourceRecord, SourceStatus};
+use crate::{EvidenceSource, InvestigationError, SourceRecord, SourceStatus};
 
 /// How a model relates to its base model.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,7 +123,7 @@ pub enum Evidence {
 
 impl FetchResult {
     /// Convenience for a source that failed.
-    pub fn failed(source: EvidenceSource, err: BonaError) -> Self {
+    pub fn failed(source: EvidenceSource, err: InvestigationError) -> Self {
         FetchResult {
             record: SourceRecord {
                 source,

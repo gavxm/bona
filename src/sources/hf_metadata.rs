@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use crate::{BonaError, DeclaredFacts, EvidenceSource};
+use crate::{DeclaredFacts, EvidenceSource, InvestigationError};
 
 use super::{Evidence, FetchResult, extract_base_models, parse_gated};
 
@@ -51,20 +51,24 @@ struct HfSibling {
     rfilename: String,
 }
 
-pub async fn fetch(client: &reqwest_middleware::ClientWithMiddleware, base_url: &str, model_id: &str) -> FetchResult {
+pub async fn fetch(
+    client: &reqwest_middleware::ClientWithMiddleware,
+    base_url: &str,
+    model_id: &str,
+) -> FetchResult {
     let start = std::time::Instant::now();
     let url = format!("{base_url}/api/models/{model_id}");
 
-    let result: Result<HfModelInfo, BonaError> = async {
+    let result: Result<HfModelInfo, InvestigationError> = async {
         let resp = client.get(&url).send().await?;
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
-            return Err(BonaError::ModelNotFound(model_id.to_string()));
+            return Err(InvestigationError::ModelNotFound(model_id.to_string()));
         }
         let resp = resp.error_for_status()?;
         let info = resp
             .json::<HfModelInfo>()
             .await
-            .map_err(|e| BonaError::Parse(e.to_string()))?;
+            .map_err(|e| InvestigationError::Parse(e.to_string()))?;
         Ok(info)
     }
     .await;

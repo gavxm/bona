@@ -5,12 +5,12 @@ use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 
 use crate::sources::{Evidence, RelationKind};
-use crate::{BonaError, ModelInvestigation, findings, sources};
+use crate::{InvestigationError, ModelInvestigation, findings, sources};
 
 const HF_BASE_URL: &str = "https://huggingface.co";
 
 /// Build an investigation for the given model id.
-pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, BonaError> {
+pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, InvestigationError> {
     investigate_with_base_url(model_id, HF_BASE_URL).await
 }
 
@@ -18,7 +18,7 @@ pub async fn investigate(model_id: &str) -> Result<ModelInvestigation, BonaError
 pub async fn investigate_with_base_url(
     model_id: &str,
     base_url: &str,
-) -> Result<ModelInvestigation, BonaError> {
+) -> Result<ModelInvestigation, InvestigationError> {
     let mut builder =
         reqwest::Client::builder().user_agent(concat!("bona/", env!("CARGO_PKG_VERSION")));
 
@@ -28,7 +28,7 @@ pub async fn investigate_with_base_url(
         headers.insert(
             header::AUTHORIZATION,
             header::HeaderValue::from_str(&format!("Bearer {token}"))
-                .map_err(|e| BonaError::Parse(format!("invalid HF_TOKEN: {e}")))?,
+                .map_err(|e| InvestigationError::Parse(format!("invalid HF_TOKEN: {e}")))?,
         );
         builder = builder.default_headers(headers);
     }

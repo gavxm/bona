@@ -15,11 +15,11 @@ pub use engine::investigate_with_base_url;
 
 /// Engine errors.
 #[derive(Debug, thiserror::Error)]
-pub enum BonaError {
-    #[error("network/HTTP error talking to HuggingFace: {0}")]
+pub enum InvestigationError {
+    #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 
-    #[error("network/HTTP error talking to HuggingFace: {0}")]
+    #[error("HTTP middleware error: {0}")]
     Middleware(#[from] reqwest_middleware::Error),
 
     #[error("model not found on HuggingFace: {0}")]

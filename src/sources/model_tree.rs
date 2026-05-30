@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{BonaError, EvidenceSource};
+use crate::{EvidenceSource, InvestigationError};
 
 use super::{Evidence, FetchResult, RelationKind};
 
@@ -262,7 +262,7 @@ async fn fetch_siblings(
     base_url: &str,
     model_id: &str,
     parent_id: &str,
-) -> Result<Vec<String>, BonaError> {
+) -> Result<Vec<String>, InvestigationError> {
     let url = format!(
         "{base_url}/api/models?filter=base_model:{parent_id}&sort=downloads&direction=-1&limit=6"
     );
@@ -271,7 +271,7 @@ async fn fetch_siblings(
     let results: Vec<HfSearchResult> = resp
         .json()
         .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
+        .map_err(|e| InvestigationError::Parse(e.to_string()))?;
 
     Ok(results
         .into_iter()
