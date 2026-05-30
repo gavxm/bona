@@ -17,6 +17,8 @@ itself.
 
 - **License inheritance violations**: Apache-2.0 declared on a Llama
   derivative that's actually governed by Meta's Community License
+- **Transitive license violations**: permissive license on a model whose
+  grandparent or earlier ancestor uses a copyleft or restricted license
 - **Lineage inconsistencies**: declared base model doesn't match the
   architecture in config.json
 - **Gated-derivative detection**: public models derived from gated parents,
@@ -40,7 +42,7 @@ cargo install bona
 ## Usage
 
 ```sh
-# investigate a model
+# Investigate a model
 bona investigate meta-llama/Llama-3.1-8B-Instruct
 
 # JSON output
@@ -49,20 +51,20 @@ bona investigate ruslanmv/Medical-Llama3-8B --json
 # SARIF output (for GitHub code scanning)
 bona investigate ruslanmv/Medical-Llama3-8B --sarif
 
-# fail CI on high-severity findings
+# Fail CI on high-severity findings
 bona investigate some/model --fail-on-high
 ```
 
 Batch mode - investigate multiple models from a file or stdin:
 
 ```sh
-# from a file
+# From a file
 bona batch --from models.txt
 
-# from stdin
+# From stdin
 echo -e "microsoft/phi-2\nruslanmv/Medical-Llama3-8B" | bona batch
 
-# batch with SARIF output
+# Batch with SARIF output
 bona batch --from models.txt --sarif results.sarif
 ```
 
@@ -112,7 +114,7 @@ cross-referenced checks across them:
 | Source                    | What it provides                                                                     |
 | ------------------------- | ------------------------------------------------------------------------------------ |
 | HF metadata               | license, base model, tags, downloads, likes, gated status, file listing, timestamps |
-| Model tree                | parent model's license and gated status, sibling models                              |
+| Model tree                | multi-hop lineage chain (up to 4 ancestors), licenses, gated status, siblings        |
 | config.json + safetensors | architecture, parameters, weight size, quantization config                           |
 | Community signals         | uploader account age, discussion activity                                            |
 

@@ -56,7 +56,7 @@ async fn ungated_child_of_gated_parent_fires_finding() {
     assert_eq!(inv.declared.gated.as_deref(), Some("false"));
 
     let lineage = inv.lineage.as_ref().expect("lineage should be populated");
-    assert_eq!(lineage.parent_gated.as_deref(), Some("manual"));
+    assert_eq!(lineage.parent_gated(), Some("manual"));
 
     assert!(
         inv.findings.iter().any(|f| f.id == "gated_derivative"),
@@ -112,6 +112,6 @@ async fn boolean_true_gated_is_normalized() {
         .expect("investigation should succeed");
 
     let lineage = inv.lineage.as_ref().unwrap();
-    assert_eq!(lineage.parent_gated.as_deref(), Some("true"));
+    assert_eq!(lineage.parent_gated(), Some("true"));
     assert!(inv.findings.iter().any(|f| f.id == "gated_derivative"));
 }

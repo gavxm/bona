@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{BonaError, EvidenceSource};
+use crate::{EvidenceSource, InvestigationError};
 
 use super::{Evidence, FetchResult};
 
@@ -74,7 +74,11 @@ struct TokenizerConfig {
     tokenizer_class: Option<String>,
 }
 
-pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> FetchResult {
+pub async fn fetch(
+    client: &reqwest_middleware::ClientWithMiddleware,
+    base_url: &str,
+    model_id: &str,
+) -> FetchResult {
     let start = std::time::Instant::now();
 
     let mut evidence = ModelConfigEvidence::default();
@@ -124,16 +128,19 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
             Err(e) => format!("config.json fetch failed: {e}"),
             _ => "config.json not found or inaccessible".to_string(),
         };
-        FetchResult::failed(EvidenceSource::ModelConfig, BonaError::Parse(reason))
+        FetchResult::failed(
+            EvidenceSource::ModelConfig,
+            InvestigationError::Parse(reason),
+        )
     }
 }
 
 /// Fetch and parse config.json from the model repo.
 async fn fetch_config_json(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
-) -> Result<Option<ConfigJson>, BonaError> {
+) -> Result<Option<ConfigJson>, InvestigationError> {
     let url = format!("{base_url}/{model_id}/resolve/main/config.json");
     let resp = client.get(&url).send().await?;
 
@@ -148,16 +155,16 @@ async fn fetch_config_json(
     let config: ConfigJson = resp
         .json()
         .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
+        .map_err(|e| InvestigationError::Parse(e.to_string()))?;
     Ok(Some(config))
 }
 
 /// Fetch total size from model.safetensors.index.json.
 async fn fetch_safetensors_index(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
-) -> Result<Option<u64>, BonaError> {
+) -> Result<Option<u64>, InvestigationError> {
     let url = format!("{base_url}/{model_id}/resolve/main/model.safetensors.index.json");
     let resp = client.get(&url).send().await?;
 
@@ -172,16 +179,16 @@ async fn fetch_safetensors_index(
     let index: SafetensorsIndex = resp
         .json()
         .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
+        .map_err(|e| InvestigationError::Parse(e.to_string()))?;
     Ok(index.metadata.and_then(|m| m.total_size))
 }
 
 /// Fetch tokenizer class from tokenizer_config.json.
 async fn fetch_tokenizer_config(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
-) -> Result<Option<String>, BonaError> {
+) -> Result<Option<String>, InvestigationError> {
     let url = format!("{base_url}/{model_id}/resolve/main/tokenizer_config.json");
     let resp = client.get(&url).send().await?;
 
@@ -196,6 +203,6 @@ async fn fetch_tokenizer_config(
     let config: TokenizerConfig = resp
         .json()
         .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
+        .map_err(|e| InvestigationError::Parse(e.to_string()))?;
     Ok(config.tokenizer_class)
 }

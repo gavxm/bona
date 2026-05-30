@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{BonaError, EvidenceSource};
+use crate::{EvidenceSource, InvestigationError};
 
 use super::{Evidence, FetchResult};
 
@@ -42,7 +42,7 @@ struct DiscussionsResponse {
 
 /// Fetch community signals.
 pub async fn fetch(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
     author: Option<&str>,
@@ -93,17 +93,20 @@ pub async fn fetch(
             (_, Err(e)) => format!("discussions fetch failed: {e}"),
             _ => "no community data available".to_string(),
         };
-        FetchResult::failed(EvidenceSource::CommunitySignals, BonaError::Parse(reason))
+        FetchResult::failed(
+            EvidenceSource::CommunitySignals,
+            InvestigationError::Parse(reason),
+        )
     }
 }
 
 /// Fetch uploader account info from the user overview endpoint.
 /// Returns None for orgs (the endpoint only works for individual users).
 async fn fetch_user_overview(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     author: &str,
-) -> Result<Option<UserOverview>, BonaError> {
+) -> Result<Option<UserOverview>, InvestigationError> {
     let url = format!("{base_url}/api/users/{author}/overview");
     let resp = client.get(&url).send().await?;
 
@@ -118,22 +121,22 @@ async fn fetch_user_overview(
     let overview: UserOverview = resp
         .json()
         .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
+        .map_err(|e| InvestigationError::Parse(e.to_string()))?;
     Ok(Some(overview))
 }
 
 /// Fetch discussion/PR counts for this model.
 async fn fetch_discussions(
-    client: &reqwest::Client,
+    client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
     model_id: &str,
-) -> Result<DiscussionsResponse, BonaError> {
+) -> Result<DiscussionsResponse, InvestigationError> {
     let url = format!("{base_url}/api/models/{model_id}/discussions?limit=1");
     let resp = client.get(&url).send().await?;
     let resp = resp.error_for_status()?;
     let discussions: DiscussionsResponse = resp
         .json()
         .await
-        .map_err(|e| BonaError::Parse(e.to_string()))?;
+        .map_err(|e| InvestigationError::Parse(e.to_string()))?;
     Ok(discussions)
 }

@@ -33,8 +33,8 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
           for (const node of link.graphNodes) {
             if (node === "subject") {
               graphNodes.push(investigation.model_id);
-            } else if (node === "parent" && investigation.lineage?.parent_id) {
-              graphNodes.push(investigation.lineage.parent_id);
+            } else if (node === "parent" && investigation.lineage?.chain[0]) {
+              graphNodes.push(investigation.lineage.chain[0].model_id);
             }
           }
         }

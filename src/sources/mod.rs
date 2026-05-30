@@ -8,7 +8,7 @@ pub mod model_tree;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{BonaError, EvidenceSource, SourceRecord, SourceStatus};
+use crate::{EvidenceSource, InvestigationError, SourceRecord, SourceStatus};
 
 /// How a model relates to its base model.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,14 +116,14 @@ pub struct FetchResult {
 #[allow(dead_code)] // Variants constructed as sources are implemented.
 pub enum Evidence {
     HfMetadata(hf_metadata::HfMetadataEvidence),
-    ModelTree(model_tree::ModelTreeEvidence),
+    ModelTree(model_tree::LineageEvidence),
     ModelConfig(model_config::ModelConfigEvidence),
     Community(community::CommunityEvidence),
 }
 
 impl FetchResult {
     /// Convenience for a source that failed.
-    pub fn failed(source: EvidenceSource, err: BonaError) -> Self {
+    pub fn failed(source: EvidenceSource, err: InvestigationError) -> Self {
         FetchResult {
             record: SourceRecord {
                 source,

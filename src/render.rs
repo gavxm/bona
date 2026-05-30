@@ -226,18 +226,37 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     // Lineage.
     if let Some(lineage) = &inv.lineage {
         section_header("Lineage");
-        if let Some(parent) = &lineage.parent_id {
-            let status = match lineage.parent_exists {
-                Some(true) => "",
-                Some(false) => " (not found on HF)",
-                None => " (not checked)",
-            };
-            label("parent", &format!("{parent}{status}"));
-            if let Some(license) = &lineage.parent_license {
-                label("parent license", license);
-            }
-        } else {
+        if lineage.chain.is_empty() {
             label("parent", "(none declared)");
+        } else {
+            for node in &lineage.chain {
+                let status = if let Some(ref err) = node.error {
+                    format!(" ({err})")
+                } else if !node.exists {
+                    " (not found on HF)".to_string()
+                } else {
+                    String::new()
+                };
+                let license_info = node
+                    .license
+                    .as_deref()
+                    .map(|l| format!(" [{l}]"))
+                    .unwrap_or_default();
+                let relation = format!("{}", node.relation);
+                let depth_label = match node.depth {
+                    0 => "parent".to_string(),
+                    1 => "grandparent".to_string(),
+                    n => format!("ancestor ({n})"),
+                };
+                label(
+                    &depth_label,
+                    &format!(
+                        "{}{license_info}{status} {}",
+                        node.model_id,
+                        format!("({relation})").dimmed(),
+                    ),
+                );
+            }
         }
         if !lineage.siblings.is_empty() {
             label(
