@@ -27,7 +27,7 @@ pub enum BonaError {
 }
 
 /// Bump when [`ModelInvestigation`] changes in a breaking way.
-pub const SCHEMA_VERSION: u32 = 2;
+pub const SCHEMA_VERSION: u32 = 3;
 
 /// Weight file extensions recognized in model repos.
 pub const WEIGHT_EXTENSIONS: &[&str] = &[
@@ -146,7 +146,7 @@ pub struct DeclaredFacts {
 pub use sources::RelationKind;
 pub use sources::community::CommunityEvidence;
 pub use sources::model_config::ModelConfigEvidence;
-pub use sources::model_tree::{LineageEvidence, LineageNode};
+pub use sources::model_tree::{LineageEvidence, LineageNode, MAX_LINEAGE_DEPTH};
 
 /// The investigation document. CLI prints it, web UI renders it, gallery
 /// caches it as JSON.

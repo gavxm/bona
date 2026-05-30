@@ -96,7 +96,7 @@ async fn populates_all_sources() {
         .expect("investigation should succeed");
 
     // Schema version.
-    assert_eq!(inv.schema_version, 2);
+    assert_eq!(inv.schema_version, 3);
 
     // Declared facts - existing fields.
     assert_eq!(inv.declared.declared_license.as_deref(), Some("mit"));
