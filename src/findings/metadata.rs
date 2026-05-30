@@ -257,7 +257,42 @@ mod tests {
         let mut inv = make_inv(4096, 32, 32000, None);
         inv.declared.files = vec!["model.safetensors".into(), "payload.exe".into()];
         check(&mut inv);
-        assert!(inv.findings.iter().any(|f| f.id == "suspicious_files"));
+        let finding = inv.findings.iter().find(|f| f.id == "suspicious_files");
+        assert!(finding.is_some());
+        assert_eq!(finding.unwrap().severity, Severity::Low);
+    }
+
+    #[test]
+    fn suspicious_files_all_extensions() {
+        for ext in [".exe", ".bat", ".cmd", ".msi", ".scr"] {
+            let mut inv = make_inv(4096, 32, 32000, None);
+            inv.declared.files = vec!["model.safetensors".into(), format!("file{ext}")];
+            check(&mut inv);
+            assert!(
+                inv.findings.iter().any(|f| f.id == "suspicious_files"),
+                "{ext} should be flagged"
+            );
+        }
+    }
+
+    #[test]
+    fn dll_is_not_flagged_as_suspicious() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec![
+            "model.safetensors".into(),
+            "onnxruntime.dll".into(),
+        ];
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "suspicious_files"));
+    }
+
+    #[test]
+    fn empty_files_list_produces_no_file_findings() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec![];
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "no_weight_files"));
+        assert!(!inv.findings.iter().any(|f| f.id == "suspicious_files"));
     }
 
     fn make_inv(

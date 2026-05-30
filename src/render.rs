@@ -184,6 +184,13 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
     {
         label("gated", gated);
     }
+    if let Some(ref modified) = inv.declared.last_modified {
+        label("last modified", &format_date(modified));
+    }
+    if let Some(ref sha) = inv.declared.sha {
+        let short = if sha.len() > 8 { &sha[..8] } else { sha };
+        label("sha", short);
+    }
     if !inv.declared.files.is_empty() {
         let weight_count = inv
             .declared

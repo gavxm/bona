@@ -225,4 +225,40 @@ mod tests {
         assert_eq!(RelationKind::Adapter.to_string(), "adapter");
         assert_eq!(RelationKind::Unknown.to_string(), "derived");
     }
+
+    #[test]
+    fn parse_gated_boolean() {
+        assert_eq!(
+            parse_gated(&serde_json::Value::Bool(true)),
+            Some("true".to_string())
+        );
+        assert_eq!(
+            parse_gated(&serde_json::Value::Bool(false)),
+            Some("false".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_gated_string() {
+        let auto = serde_json::Value::String("auto".into());
+        assert_eq!(parse_gated(&auto), Some("auto".to_string()));
+
+        let manual = serde_json::Value::String("manual".into());
+        assert_eq!(parse_gated(&manual), Some("manual".to_string()));
+    }
+
+    #[test]
+    fn parse_gated_other_returns_none() {
+        assert_eq!(parse_gated(&serde_json::Value::Null), None);
+        assert_eq!(parse_gated(&serde_json::json!(42)), None);
+    }
+
+    #[test]
+    fn extract_base_models_unrecognized_relation_falls_back_to_unknown() {
+        let cd = serde_json::json!({
+            "base_model": [{ "model": "org/base", "relation": "distilled" }]
+        });
+        let result = extract_base_models(&Some(cd));
+        assert_eq!(result[0].relation, RelationKind::Unknown);
+    }
 }
