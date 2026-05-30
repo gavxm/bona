@@ -177,7 +177,7 @@ async fn main() -> ExitCode {
             let mut set = tokio::task::JoinSet::new();
             let mut pending: Vec<String> = model_ids.into_iter().rev().collect();
             type BatchResult = (usize, Result<ModelInvestigation, (String, String)>);
-            let mut results: Vec<BatchResult> = Vec::new();
+            let mut batch_results: Vec<BatchResult> = Vec::new();
             let concurrency = 4;
             let mut order = 0usize;
 
@@ -196,24 +196,24 @@ async fn main() -> ExitCode {
                     match result {
                         Ok(inv) => {
                             eprintln!("  {} {}", "✓".green(), model_id.dimmed());
-                            results.push((idx, Ok(inv)));
+                            batch_results.push((idx, Ok(inv)));
                         }
                         Err(e) => {
                             eprintln!("  {} {}: {e}", "✗".red(), model_id);
-                            results.push((idx, Err((model_id, e.to_string()))));
+                            batch_results.push((idx, Err((model_id, e.to_string()))));
                         }
                     }
                 }
             }
 
             // Sort by original order.
-            results.sort_by_key(|(idx, _)| *idx);
+            batch_results.sort_by_key(|(idx, _)| *idx);
 
             let mut investigations: Vec<ModelInvestigation> = Vec::new();
             let mut has_high = false;
             let mut errors = 0u32;
 
-            for (_, result) in results {
+            for (_, result) in batch_results {
                 match result {
                     Ok(inv) => {
                         if inv.findings.iter().any(|f| f.severity == Severity::High) {
@@ -227,17 +227,17 @@ async fn main() -> ExitCode {
                 }
             }
 
-            let results = investigations;
-
             // Write SARIF to file if requested.
+            let mut sarif_failed = false;
             if let Some(sarif_path) = &sarif {
-                let refs: Vec<&ModelInvestigation> = results.iter().collect();
+                let refs: Vec<&ModelInvestigation> = investigations.iter().collect();
                 let sarif_json = to_sarif(&refs);
                 if let Err(e) = std::fs::write(sarif_path, &sarif_json) {
                     eprintln!(
                         "{} writing SARIF to {sarif_path}: {e}",
                         "error:".red().bold()
                     );
+                    sarif_failed = true;
                 } else {
                     eprintln!("{} SARIF written to {sarif_path}", "ok:".green());
                 }
@@ -245,14 +245,14 @@ async fn main() -> ExitCode {
 
             // Primary output to stdout.
             if json {
-                println!("{}", serde_json::to_string_pretty(&results).unwrap());
+                println!("{}", serde_json::to_string_pretty(&investigations).unwrap());
             } else {
-                print_batch_report(&results, errors);
+                print_batch_report(&investigations, errors);
             }
 
             if fail_on_high && has_high {
                 ExitCode::from(1)
-            } else if errors > 0 && results.is_empty() {
+            } else if sarif_failed || (errors > 0 && investigations.is_empty()) {
                 ExitCode::FAILURE
             } else {
                 ExitCode::SUCCESS
@@ -768,4 +768,57 @@ fn to_sarif(investigations: &[&ModelInvestigation]) -> String {
     });
 
     serde_json::to_string_pretty(&sarif).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    fn write_temp(content: &str) -> tempfile::NamedTempFile {
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+        f
+    }
+
+    #[test]
+    fn read_model_ids_parses_valid_file() {
+        let f = write_temp("org/model-a\norg/model-b\n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(ids, vec!["org/model-a", "org/model-b"]);
+    }
+
+    #[test]
+    fn read_model_ids_skips_comments_and_blanks() {
+        let f = write_temp("# comment\norg/model\n\n  \n# another\norg/other\n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(ids, vec!["org/model", "org/other"]);
+    }
+
+    #[test]
+    fn read_model_ids_trims_whitespace() {
+        let f = write_temp("  org/model  \n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(ids, vec!["org/model"]);
+    }
+
+    #[test]
+    fn read_model_ids_rejects_invalid_format() {
+        let f = write_temp("no-slash\n");
+        let err = read_model_ids(f.path().to_str().unwrap()).unwrap_err();
+        assert!(err.contains("invalid model id"));
+    }
+
+    #[test]
+    fn read_model_ids_returns_error_for_missing_file() {
+        let err = read_model_ids("/nonexistent/path.txt").unwrap_err();
+        assert!(err.contains("could not open"));
+    }
+
+    #[test]
+    fn read_model_ids_returns_empty_for_all_comments() {
+        let f = write_temp("# just comments\n# nothing else\n");
+        let ids = read_model_ids(f.path().to_str().unwrap()).unwrap();
+        assert!(ids.is_empty());
+    }
 }

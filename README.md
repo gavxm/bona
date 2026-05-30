@@ -61,7 +61,7 @@ bona batch --from models.txt
 echo -e "microsoft/phi-2\nruslanmv/Medical-Llama3-8B" | bona batch
 
 # batch with SARIF output
-bona batch --from models.txt --sarif > results.sarif
+bona batch --from models.txt --sarif results.sarif
 ```
 
 Set `HF_TOKEN` to access gated models:
