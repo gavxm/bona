@@ -96,6 +96,15 @@ pub fn extract_base_models(card_data: &Option<serde_json::Value>) -> Vec<ParsedB
     }
 }
 
+/// Normalize the HF `gated` field (bool or string) to a string.
+pub fn parse_gated(v: &serde_json::Value) -> Option<String> {
+    match v {
+        serde_json::Value::String(s) => Some(s.clone()),
+        serde_json::Value::Bool(b) => Some(b.to_string()),
+        _ => None,
+    }
+}
+
 /// The result of fetching a single evidence source.
 pub struct FetchResult {
     pub record: SourceRecord,

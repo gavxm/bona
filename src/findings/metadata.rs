@@ -1,7 +1,7 @@
 //! Metadata anomaly checks. Detects mismatches between tags and config,
 //! and weight size anomalies.
 
-use crate::{Finding, ModelInvestigation, Severity};
+use crate::{Finding, ModelInvestigation, Severity, WEIGHT_EXTENSIONS};
 
 /// Check for metadata anomalies: mismatches between declared and actual values.
 pub fn check(inv: &mut ModelInvestigation) {
@@ -123,22 +123,9 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 }
 
-/// Weight file extensions we expect in a model repo.
-const WEIGHT_EXTENSIONS: &[&str] = &[
-    ".safetensors",
-    ".bin",
-    ".pt",
-    ".pth",
-    ".gguf",
-    ".ggml",
-    ".onnx",
-    ".tflite",
-    ".h5",
-    ".msgpack",
-];
-
 /// File extensions that should not appear in a model repo.
-const SUSPICIOUS_EXTENSIONS: &[&str] = &[".exe", ".dll", ".bat", ".cmd", ".msi", ".scr"];
+/// Excludes .dll since ONNX/CUDA runtime DLLs are common in deployment repos.
+const SUSPICIOUS_EXTENSIONS: &[&str] = &[".exe", ".bat", ".cmd", ".msi", ".scr"];
 
 /// Check file listing for anomalies.
 fn check_files(inv: &mut ModelInvestigation) {
@@ -184,7 +171,7 @@ fn check_files(inv: &mut ModelInvestigation) {
         inv.findings.push(Finding {
             id: "suspicious_files".into(),
             title: "Suspicious file types in model repo".into(),
-            severity: Severity::Medium,
+            severity: Severity::Low,
             detail: format!(
                 "Model repo contains files with suspicious extensions: {}",
                 suspicious.join(", "),

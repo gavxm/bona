@@ -185,20 +185,11 @@ pub fn print_text_report(inv: &ModelInvestigation, elapsed: std::time::Duration)
         label("gated", gated);
     }
     if !inv.declared.files.is_empty() {
-        let weight_exts = [
-            ".safetensors",
-            ".bin",
-            ".pt",
-            ".pth",
-            ".gguf",
-            ".ggml",
-            ".onnx",
-        ];
         let weight_count = inv
             .declared
             .files
             .iter()
-            .filter(|f| weight_exts.iter().any(|ext| f.ends_with(ext)))
+            .filter(|f| bona::WEIGHT_EXTENSIONS.iter().any(|ext| f.ends_with(ext)))
             .count();
         let total = inv.declared.files.len();
         if weight_count > 0 {

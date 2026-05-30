@@ -29,6 +29,20 @@ pub enum BonaError {
 /// Bump when [`ModelInvestigation`] changes in a breaking way.
 pub const SCHEMA_VERSION: u32 = 2;
 
+/// Weight file extensions recognized in model repos.
+pub const WEIGHT_EXTENSIONS: &[&str] = &[
+    ".safetensors",
+    ".bin",
+    ".pt",
+    ".pth",
+    ".gguf",
+    ".ggml",
+    ".onnx",
+    ".tflite",
+    ".h5",
+    ".msgpack",
+];
+
 /// Ordered low-to-high so findings can be sorted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

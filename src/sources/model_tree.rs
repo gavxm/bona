@@ -107,11 +107,7 @@ async fn fetch_parent_info(
         .json()
         .await
         .map_err(|e| BonaError::Parse(e.to_string()))?;
-    let gated = match &info.gated {
-        Some(serde_json::Value::String(s)) => Some(s.clone()),
-        Some(serde_json::Value::Bool(b)) => Some(b.to_string()),
-        _ => None,
-    };
+    let gated = info.gated.as_ref().and_then(super::parse_gated);
     Ok((true, extract_license(&info.card_data), gated))
 }
 

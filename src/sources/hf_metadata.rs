@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{BonaError, DeclaredFacts, EvidenceSource};
 
-use super::{Evidence, FetchResult, extract_base_models};
+use super::{Evidence, FetchResult, extract_base_models, parse_gated};
 
 /// Evidence extracted from the HF API metadata endpoint.
 pub struct HfMetadataEvidence {
@@ -77,11 +77,7 @@ pub async fn fetch(client: &reqwest::Client, base_url: &str, model_id: &str) -> 
                 .and_then(|cd| cd.get("license"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let gated = match &info.gated {
-                Some(serde_json::Value::String(s)) => Some(s.clone()),
-                Some(serde_json::Value::Bool(b)) => Some(b.to_string()),
-                _ => None,
-            };
+            let gated = info.gated.as_ref().and_then(parse_gated);
             let files: Vec<String> = info
                 .siblings
                 .unwrap_or_default()
