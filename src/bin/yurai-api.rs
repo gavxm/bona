@@ -31,13 +31,15 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     let cors = if let Ok(origin) = std::env::var("CORS_ORIGIN") {
         CorsLayer::new()
-            .allow_origin(origin.parse::<axum::http::HeaderValue>().expect("invalid CORS_ORIGIN"))
+            .allow_origin(
+                origin
+                    .parse::<axum::http::HeaderValue>()
+                    .expect("invalid CORS_ORIGIN"),
+            )
             .allow_methods(Any)
             .allow_headers(Any)
     } else {
