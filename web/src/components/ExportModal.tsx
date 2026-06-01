@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useInvestigation } from "../context/useInvestigation";
 import { encodePermalink } from "../permalink";
+import { IconClose, IconCheck } from "./shared/Icons";
 
 export function ExportModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -43,11 +44,11 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-[fadeIn_150ms_ease-out]"
       onMouseDown={onClose}
     >
       <div
-        className="bg-bg-surface border border-border rounded-lg shadow-2xl w-[480px] max-w-[90vw]"
+        className="bg-bg-surface border border-border rounded-lg shadow-2xl w-120 max-w-[90vw] animate-[scaleIn_150ms_ease-out]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* header */}
@@ -59,9 +60,7 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="text-text-muted hover:text-text-primary transition-colors cursor-pointer w-6 h-6 flex items-center justify-center rounded hover:bg-bg-raised"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M3 3l8 8M11 3l-8 8" />
-            </svg>
+            <IconClose />
           </button>
         </div>
 
@@ -76,7 +75,9 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               </span>
             </div>
             <div>
-              <span className="text-text-muted w-20 inline-block">findings</span>
+              <span className="text-text-muted w-20 inline-block">
+                findings
+              </span>
               <span className="text-text-primary">
                 {findingCount === 0
                   ? "none"
@@ -100,13 +101,21 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               />
               <button
                 onClick={copyPermalink}
-                className="px-3 py-1.5 text-xs rounded border border-border bg-bg-raised text-text-secondary hover:text-text-primary hover:border-text-muted transition-colors cursor-pointer shrink-0"
+                className={`px-3 py-1.5 text-xs rounded border transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 ${copied ? "border-status-ok/40 bg-status-ok/10 text-status-ok" : "border-border bg-bg-raised text-text-secondary hover:text-text-primary hover:border-text-muted"}`}
               >
-                {copied ? "copied" : "copy"}
+                {copied ? (
+                  <>
+                    <IconCheck />
+                    copied
+                  </>
+                ) : (
+                  "copy"
+                )}
               </button>
             </div>
             <p className="text-[10px] text-text-muted mt-1.5">
-              Self-contained link with the full investigation encoded in the URL.
+              Self-contained link with the full investigation encoded in the
+              URL.
               {selectedFindingId && " Includes the currently selected finding."}
             </p>
           </div>
@@ -123,7 +132,8 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               {investigation.model_id.replace("/", "--")}.json
             </button>
             <p className="text-[10px] text-text-muted mt-1.5">
-              Full investigation as JSON. Compatible with the yurai CLI and SARIF tooling.
+              Full investigation as JSON. Compatible with the yurai CLI and
+              SARIF tooling.
             </p>
           </div>
         </div>
