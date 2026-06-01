@@ -21,6 +21,10 @@ export interface InvestigationState {
   canGoForward: boolean;
   goBack: () => void;
   goForward: () => void;
+  focusedNode: string | null;
+  setFocusedNode: (id: string | null) => void;
+  relatedFindings: Set<string>;
+  pulseKey: number;
 }
 
 export const InvestigationContext = createContext<InvestigationState | null>(null);

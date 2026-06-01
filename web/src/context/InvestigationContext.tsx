@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, type ReactNode } from "react";
-import type { ModelInvestigation } from "../types";
-import { FINDING_LINKS, type CenterTab } from "../linking";
+import { useState, useCallback, useRef, useMemo, type ReactNode } from "react";
+import type { ModelInvestigation, Finding } from "../types";
+import { FINDING_LINKS, extractModelIdFromFinding, type CenterTab, type GraphNodeRef } from "../linking";
 import { InvestigationContext } from "./investigationState";
 import { decodePermalink } from "../permalink";
 
@@ -17,14 +17,31 @@ if (initialPermalink) {
   document.title = `${initialPermalink.investigation.model_id} - yurai`;
 }
 
+/** Resolve GraphNodeRefs to actual model IDs for highlighting. */
+function resolveGraphNodes(
+  refs: GraphNodeRef[],
+  inv: ModelInvestigation,
+  finding?: Finding,
+): string[] {
+  const nodes: string[] = [];
+  for (const ref of refs) {
+    if (ref === "subject") {
+      nodes.push(inv.model_id);
+    } else if (ref === "parent" && inv.lineage?.chain[0]) {
+      nodes.push(inv.lineage.chain[0].model_id);
+    } else if (typeof ref === "object" && ref.fromFinding && finding?.evidence_url) {
+      const id = extractModelIdFromFinding(finding.evidence_url);
+      if (id) nodes.push(id);
+    }
+  }
+  return nodes;
+}
+
 function resolveInitialHighlights(inv: ModelInvestigation, findingId: string) {
   const link = FINDING_LINKS[findingId];
   if (!link) return { tab: "declared" as CenterTab, fields: [] as string[], graphNodes: [] as string[] };
-  const graphNodes: string[] = [];
-  for (const node of link.graphNodes) {
-    if (node === "subject") graphNodes.push(inv.model_id);
-    else if (node === "parent" && inv.lineage?.chain[0]) graphNodes.push(inv.lineage.chain[0].model_id);
-  }
+  const finding = inv.findings.find((f) => f.id === findingId);
+  const graphNodes = resolveGraphNodes(link.graphNodes, inv, finding);
   return { tab: link.centerTab, fields: link.centerFields, graphNodes };
 }
 
@@ -48,6 +65,34 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
   const historyForward = useRef<ModelInvestigation[]>([]);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
+  const [focusedNode, setFocusedNodeRaw] = useState<string | null>(null);
+  const [pulseKey, setPulseKey] = useState(0);
+
+  // Compute which findings reference the focused node (reverse highlight).
+  const relatedFindings = useMemo(() => {
+    if (!focusedNode || !investigation) return new Set<string>();
+    const related = new Set<string>();
+    for (const f of investigation.findings) {
+      const link = FINDING_LINKS[f.id];
+      if (!link) continue;
+      const resolved = resolveGraphNodes(link.graphNodes, investigation, f);
+      if (resolved.includes(focusedNode)) related.add(f.id);
+    }
+    return related;
+  }, [focusedNode, investigation]);
+
+  const setFocusedNode = useCallback(
+    (id: string | null) => {
+      setFocusedNodeRaw(id);
+      if (id) {
+        // Focusing a node clears the finding selection.
+        setSelectedFindingId(null);
+        setHighlightedFields([]);
+        setHighlightedGraphNodes([]);
+      }
+    },
+    [],
+  );
 
   const selectFinding = useCallback(
     (id: string | null) => {
@@ -59,23 +104,15 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
       }
 
       setSelectedFindingId(id);
+      setFocusedNodeRaw(null); // Selecting a finding clears node focus.
+      setPulseKey((k) => k + 1);
 
-      if (id && FINDING_LINKS[id]) {
+      if (id && FINDING_LINKS[id] && investigation) {
         const link = FINDING_LINKS[id];
+        const finding = investigation.findings.find((f) => f.id === id);
         setActiveTab(link.centerTab);
         setHighlightedFields(link.centerFields);
-
-        const graphNodes: string[] = [];
-        if (investigation) {
-          for (const node of link.graphNodes) {
-            if (node === "subject") {
-              graphNodes.push(investigation.model_id);
-            } else if (node === "parent" && investigation.lineage?.chain[0]) {
-              graphNodes.push(investigation.lineage.chain[0].model_id);
-            }
-          }
-        }
-        setHighlightedGraphNodes(graphNodes);
+        setHighlightedGraphNodes(resolveGraphNodes(link.graphNodes, investigation, finding));
       } else {
         setHighlightedFields([]);
         setHighlightedGraphNodes([]);
@@ -96,18 +133,11 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
       // selectFinding (which has unstable deps and would cause re-render loops).
       if (findingId && FINDING_LINKS[findingId]) {
         const link = FINDING_LINKS[findingId];
+        const finding = inv.findings.find((f) => f.id === findingId);
         setSelectedFindingId(findingId);
         setActiveTab(link.centerTab);
         setHighlightedFields(link.centerFields);
-        const graphNodes: string[] = [];
-        for (const node of link.graphNodes) {
-          if (node === "subject") {
-            graphNodes.push(inv.model_id);
-          } else if (node === "parent" && inv.lineage?.chain[0]) {
-            graphNodes.push(inv.lineage.chain[0].model_id);
-          }
-        }
-        setHighlightedGraphNodes(graphNodes);
+        setHighlightedGraphNodes(resolveGraphNodes(link.graphNodes, inv, finding));
       } else {
         setSelectedFindingId(null);
         setHighlightedFields([]);
@@ -243,6 +273,10 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
         canGoForward,
         goBack,
         goForward,
+        focusedNode,
+        setFocusedNode,
+        relatedFindings,
+        pulseKey,
       }}
     >
       {children}
