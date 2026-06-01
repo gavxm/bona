@@ -140,12 +140,12 @@ export function ModelSearch() {
           }}
           placeholder="org/model (⌘K)"
           disabled={loading}
-          className="w-56 bg-bg-raised border border-border rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent disabled:opacity-50"
+          className="w-80 h-8.5 bg-bg-raised border border-border-strong rounded-lg px-3 font-mono text-[12.5px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-line focus:shadow-[0_0_0_3px_var(--color-accent-bg)] disabled:opacity-50"
         />
         <button
           onClick={submit}
           disabled={loading || !value.includes("/")}
-          className="px-2 py-1 text-xs rounded border border-border bg-bg-raised text-text-secondary hover:text-text-primary hover:border-text-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className="h-8.5 px-3 text-[12.5px] font-medium rounded-lg border border-border-strong bg-bg-raised text-text-secondary hover:text-text-primary hover:bg-bg-open transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? "..." : "go"}
         </button>
