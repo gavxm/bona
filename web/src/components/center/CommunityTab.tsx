@@ -1,5 +1,5 @@
 import { useInvestigation } from "../../context/useInvestigation";
-import { FieldRow } from "./FieldRow";
+import { FieldRow, useFieldFlags } from "./FieldRow";
 
 /** Compute a relative label anchored to `referenceIso` (the investigation
  *  timestamp) so the display stays stable for cached investigations. */
@@ -27,35 +27,24 @@ function formatRelativeDate(iso: string, referenceIso?: string): string {
 export function CommunityTab() {
   const { investigation } = useInvestigation();
   const community = investigation?.community;
+  const flags = useFieldFlags(investigation?.findings ?? []);
+
   if (!community) {
-    return <p className="px-4 py-6 text-sm text-text-muted">No community data available.</p>;
+    return <p className="px-4 py-6 text-sm text-text-muted">Community data not available.</p>;
   }
 
-  const authorUrl = community.author
-    ? `https://huggingface.co/${community.author}`
+  const authorValue = community.author
+    ? community.author
     : null;
 
   return (
     <div className="py-2">
-      <div className="flex items-baseline gap-4 px-4 py-1.5 border-l-3 border-l-transparent">
-        <span className="text-text-secondary w-36 shrink-0 text-xs">author</span>
-        {authorUrl ? (
-          <a
-            href={authorUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-link hover:underline"
-          >
-            {community.author}
-          </a>
-        ) : (
-          <span className="text-sm text-text-muted">(unknown)</span>
-        )}
-      </div>
+      <FieldRow label="author" field="author" value={authorValue} flag={flags.get("author")} />
       <FieldRow
         label="account created"
         field="author_created_at"
         value={community.author_created_at ? formatRelativeDate(community.author_created_at, investigation?.investigated_at) : null}
+        flag={flags.get("author_created_at")}
       />
       <FieldRow
         label="models published"
@@ -68,9 +57,10 @@ export function CommunityTab() {
         field="discussion_count"
         value={
           community.discussion_count != null
-            ? `${community.discussion_count} (${community.closed_discussion_count ?? 0} closed)`
+            ? `${community.discussion_count} open - ${community.closed_discussion_count ?? 0} closed`
             : null
         }
+        flag={flags.get("discussion_count")}
       />
     </div>
   );

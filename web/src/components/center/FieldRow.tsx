@@ -1,18 +1,46 @@
-import { useEffect, useRef } from "react";
-import clsx from "clsx";
+import { useEffect, useRef, useMemo } from "react";
 import { useInvestigation } from "../../context/useInvestigation";
+import { FINDING_LINKS } from "../../linking";
+import type { Finding } from "../../types";
+
+/** Compute which fields have findings pointing at them and the highest severity. */
+export function useFieldFlags(findings: Finding[]): Map<string, "high" | "medium"> {
+  return useMemo(() => {
+    const flags = new Map<string, "high" | "medium">();
+    for (const f of findings) {
+      const link = FINDING_LINKS[f.id];
+      if (!link) continue;
+      const sev = f.severity === "high" ? "high" : f.severity === "medium" ? "medium" : null;
+      if (!sev) continue;
+      for (const field of link.centerFields) {
+        const existing = flags.get(field);
+        if (!existing || (sev === "high" && existing === "medium")) {
+          flags.set(field, sev);
+        }
+      }
+    }
+    return flags;
+  }, [findings]);
+}
 
 interface FieldRowProps {
   label: string;
   field: string;
   value: string | null | undefined;
   mono?: boolean;
+  flag?: "high" | "medium" | null;
 }
 
-export function FieldRow({ label, field, value, mono = false }: FieldRowProps) {
-  const { highlightedFields } = useInvestigation();
+const FLAG_STYLES = {
+  high: "bg-severity-high-bg text-severity-high",
+  medium: "bg-severity-medium-bg text-severity-medium",
+};
+
+export function FieldRow({ label, field, value, mono = false, flag }: FieldRowProps) {
+  const { highlightedFields, pulseKey } = useInvestigation();
   const isHighlighted = highlightedFields.includes(field);
   const ref = useRef<HTMLDivElement>(null);
+  const prevPulseKey = useRef(pulseKey);
 
   useEffect(() => {
     if (isHighlighted && ref.current) {
@@ -20,25 +48,40 @@ export function FieldRow({ label, field, value, mono = false }: FieldRowProps) {
     }
   }, [isHighlighted]);
 
+  // Re-trigger pulse animation on pulseKey change.
+  useEffect(() => {
+    if (isHighlighted && ref.current && pulseKey !== prevPulseKey.current) {
+      ref.current.classList.remove("animate-fieldpulse");
+      // Force reflow to restart animation.
+      void ref.current.offsetWidth;
+      ref.current.classList.add("animate-fieldpulse");
+    }
+    prevPulseKey.current = pulseKey;
+  }, [pulseKey, isHighlighted]);
+
   return (
     <div
       ref={ref}
-      className={clsx(
-        "flex items-baseline gap-4 px-4 py-1.5 border-l-3 transition-all duration-300 ease-in-out",
-        isHighlighted
-          ? "border-l-highlight-border bg-[rgba(210,153,34,0.12)]"
-          : "border-l-transparent bg-transparent"
-      )}
+      className={[
+        "grid items-baseline gap-x-4 px-2.5 py-2.5 rounded-lg mx-[-10px] transition-all duration-300 border-t border-border first:border-t-0",
+        isHighlighted ? "bg-accent-bg shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "",
+      ].join(" ")}
+      style={{ gridTemplateColumns: "160px minmax(0, 1fr)" }}
     >
-      <span className="text-text-secondary w-36 shrink-0 text-xs">
+      <span className="text-text-muted text-[12.5px] flex items-center gap-1.5">
+        {flag && (
+          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded text-[9px] font-mono font-bold ${FLAG_STYLES[flag]}`}>
+            !
+          </span>
+        )}
         {label}
       </span>
       <span
-        className={clsx(
-          "text-sm text-text-primary",
-          mono && "font-mono",
-          !value && "text-text-muted"
-        )}
+        className={[
+          "text-[13px] wrap-break-word leading-relaxed",
+          mono ? "font-mono" : "",
+          !value ? "text-text-muted" : flag === "high" ? "text-severity-high" : flag === "medium" ? "text-severity-medium" : "text-text-primary",
+        ].join(" ")}
       >
         {value ?? "(none)"}
       </span>
