@@ -24,7 +24,7 @@ export function FieldRow({ label, field, value, mono = false }: FieldRowProps) {
     <div
       ref={ref}
       className={clsx(
-        "flex items-baseline gap-4 px-4 py-1.5 border-l-3 transition-all duration-500 ease-in-out",
+        "flex items-baseline gap-4 px-4 py-1.5 border-l-3 transition-all duration-300 ease-in-out",
         isHighlighted
           ? "border-l-highlight-border bg-[rgba(210,153,34,0.12)]"
           : "border-l-transparent bg-transparent"

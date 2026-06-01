@@ -13,6 +13,9 @@ function parseInitialPermalink() {
 }
 
 const initialPermalink = parseInitialPermalink();
+if (initialPermalink) {
+  document.title = `${initialPermalink.investigation.model_id} - yurai`;
+}
 
 function resolveInitialHighlights(inv: ModelInvestigation, findingId: string) {
   const link = FINDING_LINKS[findingId];
@@ -127,6 +130,7 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     setIsSnapshot(false);
     setCanGoBack(historyBack.current.length > 0);
     setCanGoForward(true);
+    document.title = `${prev.model_id} - yurai`;
     const url = new URL(window.location.href);
     url.searchParams.set("model", prev.model_id);
     url.hash = "";
@@ -146,6 +150,7 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     setIsSnapshot(false);
     setCanGoBack(true);
     setCanGoForward(historyForward.current.length > 0);
+    document.title = `${next.model_id} - yurai`;
     const url = new URL(window.location.href);
     url.searchParams.set("model", next.model_id);
     url.hash = "";
@@ -204,6 +209,7 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
         throw new Error(`Failed to load investigation for ${modelId}`);
       const data = await resp.json();
       setInvestigation(data);
+      document.title = `${modelId} - yurai`;
       const url = new URL(window.location.href);
       url.searchParams.set("model", modelId);
       url.hash = "";

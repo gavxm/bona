@@ -30,9 +30,22 @@ export function ModelSearch() {
   const [hfResults, setHfResults] = useState<HfModel[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const value = editing ? draft : (investigation?.model_id ?? draft);
+
+  // Cmd+K / Ctrl+K to focus search.
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}investigations/gallery.json`)
@@ -106,6 +119,7 @@ export function ModelSearch() {
     <div ref={ref} className="relative">
       <div className="flex items-center gap-1">
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(e) => {
@@ -124,7 +138,7 @@ export function ModelSearch() {
             if (e.key === "Enter") submit();
             if (e.key === "Escape") setOpen(false);
           }}
-          placeholder="org/model"
+          placeholder="org/model (⌘K)"
           disabled={loading}
           className="w-56 bg-bg-raised border border-border rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent disabled:opacity-50"
         />
@@ -172,7 +186,7 @@ export function ModelSearch() {
                 >
                   <span className="font-mono truncate">{m.id}</span>
                   <span className="text-[10px] text-text-muted ml-2 shrink-0">
-                    {formatCount(m.downloads)} dl
+                    {formatCount(m.downloads)} dls
                   </span>
                 </button>
               ))}

@@ -47,11 +47,14 @@ export function TopBar() {
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-bg-base">
       <div className="flex items-center gap-5">
-        <div className="flex items-center gap-1.5">
+        <a
+          href={import.meta.env.BASE_URL}
+          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+        >
           <img src={`${import.meta.env.BASE_URL}logo-dark.svg`} alt="yurai" className="h-8 w-auto" />
           <span className="text-text-primary font-semibold text-base tracking-tight">yurai</span>
           <span className="text-text-muted text-[12px] ml-2">provenance explorer</span>
-        </div>
+        </a>
         <NavButtons />
         {investigation && (
           <>

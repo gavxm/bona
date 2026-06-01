@@ -18,7 +18,7 @@ export function DeclaredTab() {
   const hiddenCount = d.tags.length - MAX_VISIBLE_TAGS;
 
   return (
-    <div className="py-1">
+    <div className="py-2">
       <FieldRow label="license" field="declared_license" value={d.declared_license} />
       <FieldRow label="base model" field="declared_base_model" value={d.declared_base_model} mono />
       <FieldRow label="library" field="library" value={d.library} />

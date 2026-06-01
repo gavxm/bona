@@ -55,14 +55,14 @@ export function ModelNode({ data }: NodeProps<ModelNodeType>) {
       )}>
         {shortId}
       </div>
-      <div className="text-[9px] text-text-secondary truncate max-w-40">{data.modelId}</div>
+      <div className="text-[10px] text-text-secondary truncate max-w-40">{data.modelId}</div>
       {data.license && (
-        <span className="inline-block mt-0.5 px-1 py-0 text-[9px] rounded bg-bg-base text-text-primary border border-text-muted/40">
+        <span className="inline-block mt-0.5 px-1 py-0 text-[10px] rounded bg-bg-base text-text-primary border border-text-muted/40">
           {data.license}
         </span>
       )}
       {data.exists === false && (
-        <div className="text-[9px] text-severity-high mt-0.5">not found</div>
+        <div className="text-[10px] text-severity-high mt-0.5">not found</div>
       )}
       <Handle type="target" position={Position.Top} className="bg-text-muted! w-1.5! h-1.5! border-0!" />
       <Handle type="source" position={Position.Bottom} className="bg-text-muted! w-1.5! h-1.5! border-0!" />
