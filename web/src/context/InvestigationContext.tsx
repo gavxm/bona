@@ -210,26 +210,28 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     clearHighlights();
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL;
+      const apiBase = "https://api.yurai.sh";
       let resp: Response | null = null;
 
-      if (apiBase) {
-        resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(() => null);
-        const isJson = resp?.headers.get("content-type")?.includes("application/json");
-        if (!resp || !resp.ok || !isJson) resp = null;
-      }
+      resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(() => null);
+      const isJson = resp?.headers.get("content-type")?.includes("application/json");
+      if (!resp || !resp.ok || !isJson) resp = null;
 
       if (!resp) {
         const filename = modelId.replace("/", "--");
         const base = import.meta.env.BASE_URL;
         resp = await fetch(`${base}investigations/${filename}.json`);
-        const isJson = resp.headers.get("content-type")?.includes("application/json");
-        if (!isJson) {
-          throw new Error(`No investigation available for ${modelId}. Set VITE_API_URL to investigate live models.`);
+        const ct = resp.headers.get("content-type") ?? "";
+        if (!ct.includes("json")) {
+          throw new Error(`No investigation available for ${modelId}. The API may be temporarily unavailable.`);
         }
       }
       if (!resp.ok) throw new Error(`Failed to load investigation for ${modelId}`);
-      const data = await resp.json();
+      const text = await resp.text();
+      if (text.trimStart().startsWith("<")) {
+        throw new Error(`No investigation available for ${modelId}. The API may be temporarily unavailable.`);
+      }
+      const data = JSON.parse(text);
       setInvestigation(data);
       document.title = `${modelId} - yurai`;
       const url = new URL(window.location.href);
