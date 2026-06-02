@@ -25,7 +25,7 @@ function formatTimestamp(iso: string): string {
 }
 
 /** Build a readable summary sentence from the findings. */
-function buildSummary(findings: Finding[], _modelId: string, parentId?: string | null): string | null {
+function buildSummary(findings: Finding[], parentId?: string | null): string | null {
   const high = findings.filter((f) => f.severity === "high");
   const med = findings.filter((f) => f.severity === "medium");
   const significant = [...high, ...med];
@@ -93,7 +93,7 @@ export function VerdictHeader() {
       : "text-severity-medium";
 
   const parentId = investigation.lineage?.chain[0]?.model_id;
-  const why = buildSummary(findings, investigation.model_id, parentId);
+  const why = buildSummary(findings, parentId);
 
   const relation = investigation.declared.base_model_relation;
   const typeLabel = relation && relation !== "unknown" ? RELATION_LABELS[relation] ?? relation : null;

@@ -55,11 +55,8 @@ export function TopBar() {
         {/* Spacer */}
         <span className="flex-1" />
 
-        {/* Search (centered, hidden on mobile for read-only view) */}
+        {/* Search */}
         <span className="hidden lg:block"><ModelSearch /></span>
-
-        {/* Spacer */}
-        <span className="hidden lg:flex flex-1" />
 
         {/* Export */}
         {investigation && (

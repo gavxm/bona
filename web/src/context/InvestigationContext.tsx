@@ -1,23 +1,11 @@
-import { useState, useCallback, useRef, useMemo, type ReactNode } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect, type ReactNode } from "react";
 import type { ModelInvestigation, Finding } from "../types";
 import { FINDING_LINKS, extractModelIdFromFinding, type CenterTab, type GraphNodeRef } from "../linking";
 import { InvestigationContext } from "./investigationState";
 import { decodePermalink } from "../permalink";
 
-/** Parse permalink from the URL fragment at load time. This runs once,
- *  synchronously, before the first render so we can seed useState. */
-function parseInitialPermalink() {
-  const hash = window.location.hash;
-  if (!hash.includes("s=")) return null;
-  return decodePermalink(hash);
-}
+/* ---- Helpers ---- */
 
-const initialPermalink = parseInitialPermalink();
-if (initialPermalink) {
-  document.title = `${initialPermalink.investigation.model_id} - yurai`;
-}
-
-/** Resolve GraphNodeRefs to actual model IDs for highlighting. */
 function resolveGraphNodes(
   refs: GraphNodeRef[],
   inv: ModelInvestigation,
@@ -37,38 +25,57 @@ function resolveGraphNodes(
   return nodes;
 }
 
-function resolveInitialHighlights(inv: ModelInvestigation, findingId: string) {
+function resolveHighlights(inv: ModelInvestigation, findingId: string) {
   const link = FINDING_LINKS[findingId];
-  if (!link) return { tab: "declared" as CenterTab, fields: [] as string[], graphNodes: [] as string[] };
+  if (!link) return null;
   const finding = inv.findings.find((f) => f.id === findingId);
-  const graphNodes = resolveGraphNodes(link.graphNodes, inv, finding);
-  return { tab: link.centerTab, fields: link.centerFields, graphNodes };
+  return {
+    tab: link.centerTab,
+    fields: link.centerFields,
+    graphNodes: resolveGraphNodes(link.graphNodes, inv, finding),
+  };
 }
 
-const initHighlights = initialPermalink?.findingId
-  ? resolveInitialHighlights(initialPermalink.investigation, initialPermalink.findingId)
-  : null;
+/* ---- Provider ---- */
 
 export function InvestigationProvider({ children }: { children: ReactNode }) {
-  const [investigation, setInvestigation] = useState<ModelInvestigation | null>(initialPermalink?.investigation ?? null);
+  // #1: Lazy initializer. Permalink parsing runs once on mount, not at import time.
+  const [initial] = useState(() => {
+    const hash = window.location.hash;
+    if (!hash.includes("s=")) return null;
+    const result = decodePermalink(hash);
+    if (result) document.title = `${result.investigation.model_id} - yurai`;
+    return result;
+  });
+
+  const initHighlights = initial?.findingId
+    ? resolveHighlights(initial.investigation, initial.findingId)
+    : null;
+
+  const [investigation, setInvestigation] = useState<ModelInvestigation | null>(initial?.investigation ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(initialPermalink?.findingId ?? null);
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(initial?.findingId ?? null);
   const [activeTab, setActiveTab] = useState<CenterTab>(initHighlights?.tab ?? "declared");
   const [highlightedFields, setHighlightedFields] = useState<string[]>(initHighlights?.fields ?? []);
   const [highlightedGraphNodes, setHighlightedGraphNodes] = useState<string[]>(initHighlights?.graphNodes ?? []);
-  const [isSnapshot, setIsSnapshot] = useState(initialPermalink != null);
-  const [schemaWarning, setSchemaWarning] = useState(initialPermalink?.versionMismatch ?? false);
+  const [isSnapshot, setIsSnapshot] = useState(initial != null);
+  const [schemaWarning, setSchemaWarning] = useState(initial?.versionMismatch ?? false);
 
-  // Navigation history for back/forward between investigations.
+  // Ref tracks current investigation for stable callbacks.
+  const investigationRef = useRef(investigation);
+  useEffect(() => { investigationRef.current = investigation; }, [investigation]);
+
+  // Navigation history.
   const historyBack = useRef<ModelInvestigation[]>([]);
   const historyForward = useRef<ModelInvestigation[]>([]);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
+
   const [focusedNode, setFocusedNodeRaw] = useState<string | null>(null);
   const [pulseKey, setPulseKey] = useState(0);
 
-  // Compute which findings reference the focused node (reverse highlight).
+  // Reverse highlight: findings that reference the focused node.
   const relatedFindings = useMemo(() => {
     if (!focusedNode || !investigation) return new Set<string>();
     const related = new Set<string>();
@@ -81,11 +88,32 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     return related;
   }, [focusedNode, investigation]);
 
+  // #2: Shared reset helper used by goBack, goForward, loadInvestigation.
+  const clearHighlights = useCallback(() => {
+    setSelectedFindingId(null);
+    setHighlightedFields([]);
+    setHighlightedGraphNodes([]);
+    setFocusedNodeRaw(null);
+    setActiveTab("declared");
+  }, []);
+
+  /** Show a new investigation and update URL. Used by goBack/goForward. */
+  const showInvestigation = useCallback((inv: ModelInvestigation) => {
+    setInvestigation(inv);
+    clearHighlights();
+    setError(null);
+    setIsSnapshot(false);
+    document.title = `${inv.model_id} - yurai`;
+    const url = new URL(window.location.href);
+    url.searchParams.set("model", inv.model_id);
+    url.hash = "";
+    window.history.replaceState(null, "", url.toString());
+  }, [clearHighlights]);
+
   const setFocusedNode = useCallback(
     (id: string | null) => {
       setFocusedNodeRaw(id);
       if (id) {
-        // Focusing a node clears the finding selection.
         setSelectedFindingId(null);
         setHighlightedFields([]);
         setHighlightedGraphNodes([]);
@@ -104,19 +132,20 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
       }
 
       setSelectedFindingId(id);
-      setFocusedNodeRaw(null); // Selecting a finding clears node focus.
+      setFocusedNodeRaw(null);
       setPulseKey((k) => k + 1);
 
-      if (id && FINDING_LINKS[id] && investigation) {
-        const link = FINDING_LINKS[id];
-        const finding = investigation.findings.find((f) => f.id === id);
-        setActiveTab(link.centerTab);
-        setHighlightedFields(link.centerFields);
-        setHighlightedGraphNodes(resolveGraphNodes(link.graphNodes, investigation, finding));
-      } else {
-        setHighlightedFields([]);
-        setHighlightedGraphNodes([]);
+      if (id && investigation) {
+        const hl = resolveHighlights(investigation, id);
+        if (hl) {
+          setActiveTab(hl.tab);
+          setHighlightedFields(hl.fields);
+          setHighlightedGraphNodes(hl.graphNodes);
+          return;
+        }
       }
+      setHighlightedFields([]);
+      setHighlightedGraphNodes([]);
     },
     [selectedFindingId, investigation]
   );
@@ -129,20 +158,19 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
       setIsSnapshot(true);
       setActiveTab("declared");
 
-      // Apply finding selection inline instead of deferring through
-      // selectFinding (which has unstable deps and would cause re-render loops).
-      if (findingId && FINDING_LINKS[findingId]) {
-        const link = FINDING_LINKS[findingId];
-        const finding = inv.findings.find((f) => f.id === findingId);
-        setSelectedFindingId(findingId);
-        setActiveTab(link.centerTab);
-        setHighlightedFields(link.centerFields);
-        setHighlightedGraphNodes(resolveGraphNodes(link.graphNodes, inv, finding));
-      } else {
-        setSelectedFindingId(null);
-        setHighlightedFields([]);
-        setHighlightedGraphNodes([]);
+      if (findingId) {
+        const hl = resolveHighlights(inv, findingId);
+        if (hl) {
+          setSelectedFindingId(findingId);
+          setActiveTab(hl.tab);
+          setHighlightedFields(hl.fields);
+          setHighlightedGraphNodes(hl.graphNodes);
+          return;
+        }
       }
+      setSelectedFindingId(null);
+      setHighlightedFields([]);
+      setHighlightedGraphNodes([]);
     },
     [],
   );
@@ -150,93 +178,57 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
   const goBack = useCallback(() => {
     const prev = historyBack.current.pop();
     if (!prev) return;
-    if (investigation) historyForward.current.push(investigation);
-    setInvestigation(prev);
-    setSelectedFindingId(null);
-    setHighlightedFields([]);
-    setHighlightedGraphNodes([]);
-    setActiveTab("declared");
-    setError(null);
-    setIsSnapshot(false);
+    const current = investigationRef.current;
+    if (current) historyForward.current.push(current);
+    showInvestigation(prev);
     setCanGoBack(historyBack.current.length > 0);
     setCanGoForward(true);
-    document.title = `${prev.model_id} - yurai`;
-    const url = new URL(window.location.href);
-    url.searchParams.set("model", prev.model_id);
-    url.hash = "";
-    window.history.replaceState(null, "", url.toString());
-  }, [investigation]);
+  }, [showInvestigation]);
 
   const goForward = useCallback(() => {
     const next = historyForward.current.pop();
     if (!next) return;
-    if (investigation) historyBack.current.push(investigation);
-    setInvestigation(next);
-    setSelectedFindingId(null);
-    setHighlightedFields([]);
-    setHighlightedGraphNodes([]);
-    setActiveTab("declared");
-    setError(null);
-    setIsSnapshot(false);
+    const current = investigationRef.current;
+    if (current) historyBack.current.push(current);
+    showInvestigation(next);
     setCanGoBack(true);
     setCanGoForward(historyForward.current.length > 0);
-    document.title = `${next.model_id} - yurai`;
-    const url = new URL(window.location.href);
-    url.searchParams.set("model", next.model_id);
-    url.hash = "";
-    window.history.replaceState(null, "", url.toString());
-  }, [investigation]);
+  }, [showInvestigation]);
 
   const loadInvestigation = useCallback(async (modelId: string) => {
-    // Push current investigation onto back stack inline (avoids unstable dep on pushHistory).
-    setInvestigation((prev) => {
-      if (prev) {
-        historyBack.current.push(prev);
-        historyForward.current = [];
-        setCanGoBack(true);
-        setCanGoForward(false);
-      }
-      return prev;
-    });
+    const current = investigationRef.current;
+    if (current) {
+      historyBack.current.push(current);
+      historyForward.current = [];
+      setCanGoBack(true);
+      setCanGoForward(false);
+    }
+
     setLoading(true);
     setError(null);
     setIsSnapshot(false);
-    setSelectedFindingId(null);
-    setHighlightedFields([]);
-    setHighlightedGraphNodes([]);
-    setActiveTab("declared");
+    clearHighlights();
 
     try {
       const apiBase = import.meta.env.VITE_API_URL;
       let resp: Response | null = null;
 
-      // Only attempt the API when an explicit URL is configured.
       if (apiBase) {
-        resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(
-          () => null,
-        );
-        const isJson = resp?.headers
-          .get("content-type")
-          ?.includes("application/json");
+        resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(() => null);
+        const isJson = resp?.headers.get("content-type")?.includes("application/json");
         if (!resp || !resp.ok || !isJson) resp = null;
       }
 
-      // Fall back to static gallery JSON.
       if (!resp) {
         const filename = modelId.replace("/", "--");
         const base = import.meta.env.BASE_URL;
         resp = await fetch(`${base}investigations/${filename}.json`);
-        const isJson = resp.headers
-          .get("content-type")
-          ?.includes("application/json");
+        const isJson = resp.headers.get("content-type")?.includes("application/json");
         if (!isJson) {
-          throw new Error(
-            `No investigation available for ${modelId}. Set VITE_API_URL to investigate live models.`,
-          );
+          throw new Error(`No investigation available for ${modelId}. Set VITE_API_URL to investigate live models.`);
         }
       }
-      if (!resp.ok)
-        throw new Error(`Failed to load investigation for ${modelId}`);
+      if (!resp.ok) throw new Error(`Failed to load investigation for ${modelId}`);
       const data = await resp.json();
       setInvestigation(data);
       document.title = `${modelId} - yurai`;
@@ -250,7 +242,7 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearHighlights]);
 
   return (
     <InvestigationContext.Provider

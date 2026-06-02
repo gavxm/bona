@@ -2,12 +2,28 @@ import { deflate, inflate } from "pako";
 import type { ModelInvestigation } from "./types";
 import { SCHEMA_VERSION } from "./types";
 
+/** Strip fields that aren't needed for display to keep permalink URLs short. */
+function trimForPermalink(inv: ModelInvestigation): ModelInvestigation {
+  return {
+    ...inv,
+    declared: {
+      ...inv.declared,
+      // Tags and files bloat the payload; not critical for the permalink view.
+      tags: inv.declared.tags.slice(0, 5),
+      files: inv.declared.files ? inv.declared.files.slice(0, 10) : [],
+      // Drop sha - not displayed.
+      sha: undefined,
+    },
+  };
+}
+
 /** Encode an investigation snapshot into a URL fragment string. */
 export function encodePermalink(
   investigation: ModelInvestigation,
   findingId?: string | null,
 ): string {
-  const json = JSON.stringify(investigation);
+  const trimmed = trimForPermalink(investigation);
+  const json = JSON.stringify(trimmed);
   const compressed = deflate(new TextEncoder().encode(json));
   const encoded = base64UrlEncode(compressed);
 

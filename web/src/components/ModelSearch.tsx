@@ -32,6 +32,7 @@ export function ModelSearch() {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const abortRef = useRef<AbortController>(undefined);
 
   const value = editing ? draft : (investigation?.model_id ?? draft);
 
@@ -54,23 +55,27 @@ export function ModelSearch() {
       .catch((e) => console.warn("failed to load gallery:", e));
   }, []);
 
-  // Debounced HF search.
+  // Debounced HF search with request cancellation.
   const searchHf = useCallback((query: string) => {
     clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
     if (!query.trim() || query.trim().length < 2) {
       setHfResults([]);
       return;
     }
     debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       try {
         const resp = await fetch(
-          `https://huggingface.co/api/models?search=${encodeURIComponent(query.trim())}&sort=downloads&direction=-1&limit=5`
+          `https://huggingface.co/api/models?search=${encodeURIComponent(query.trim())}&sort=downloads&direction=-1&limit=5`,
+          { signal: controller.signal },
         );
         if (!resp.ok) return;
         const data: HfModel[] = await resp.json();
         setHfResults(data.filter((m) => m.id));
       } catch {
-        // Silently fail - HF search is best-effort.
+        // Silently fail - aborted or network error.
       }
     }, 300);
   }, []);

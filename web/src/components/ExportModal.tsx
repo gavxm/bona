@@ -114,9 +114,13 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               </button>
             </div>
             <p className="text-[10px] text-text-muted mt-1.5">
-              Self-contained link with the full investigation encoded in the
-              URL.
+              Self-contained link with the full investigation encoded in the URL.
               {selectedFindingId && " Includes the currently selected finding."}
+              {permalink.length > 2000 && (
+                <span className="block mt-1 text-severity-medium">
+                  This URL is {permalink.length.toLocaleString()} characters.
+                </span>
+              )}
             </p>
           </div>
 
