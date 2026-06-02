@@ -1,0 +1,80 @@
+{
+  "schema_version": 3,
+  "model_id": "google/gemma-2b",
+  "investigated_at": "2026-05-30T09:15:22.000000+00:00",
+  "declared": {
+    "model_id": "google/gemma-2b",
+    "declared_license": "gemma",
+    "declared_base_model": null,
+    "library": "transformers",
+    "pipeline_tag": "text-generation",
+    "tags": [
+      "transformers",
+      "pytorch",
+      "safetensors",
+      "gemma",
+      "text-generation",
+      "en",
+      "license:gemma",
+      "endpoints_compatible",
+      "region:us"
+    ],
+    "downloads": 2841576,
+    "gated": "auto",
+    "likes": 1024,
+    "created_at": "2024-02-20T14:00:00.000Z",
+    "last_modified": "2024-11-18T10:30:00.000Z",
+    "files": [
+      "config.json",
+      "generation_config.json",
+      "model-00001-of-00002.safetensors",
+      "model-00002-of-00002.safetensors",
+      "model.safetensors.index.json",
+      "special_tokens_map.json",
+      "tokenizer.json",
+      "tokenizer.model",
+      "tokenizer_config.json"
+    ]
+  },
+  "lineage": {
+    "chain": [],
+    "siblings": []
+  },
+  "config": {
+    "architectures": ["GemmaForCausalLM"],
+    "model_type": "gemma",
+    "hidden_size": 2048,
+    "vocab_size": 256000,
+    "num_hidden_layers": 18,
+    "safetensors_total_size": 5000000000,
+    "tokenizer_class": "GemmaTokenizer",
+    "quant_method": null,
+    "quant_bits": null
+  },
+  "community": {
+    "author": "google",
+    "author_created_at": "2021-06-15T10:00:00.000Z",
+    "author_model_count": 2847,
+    "discussion_count": 128,
+    "closed_discussion_count": 89
+  },
+  "sources": [
+    {
+      "source": "hf_metadata",
+      "status": { "status": "ok", "fetched_ms": 89 }
+    },
+    {
+      "source": "model_tree",
+      "status": { "status": "ok", "fetched_ms": 45 }
+    },
+    {
+      "source": "model_config",
+      "status": { "status": "ok", "fetched_ms": 112 }
+    },
+    {
+      "source": "community_signals",
+      "status": { "status": "ok", "fetched_ms": 78 }
+    }
+  ],
+  "findings": []
+}

@@ -5,41 +5,31 @@ import { ConfigTab } from "./ConfigTab";
 import { CommunityTab } from "./CommunityTab";
 import { SourcesTab } from "./SourcesTab";
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-block px-1.5 py-0.5 text-[10px] rounded bg-bg-raised text-text-secondary border border-border">
-      {children}
-    </span>
-  );
-}
-
 export function CenterPanel() {
   const { investigation, activeTab } = useInvestigation();
   if (!investigation) return null;
 
+  const sourcesTotal = investigation.sources.length;
+
   return (
-    <div className="h-full overflow-y-auto bg-bg-base border-x border-border">
-      <div className="px-4 py-2 border-b border-border">
-        <h2 className="text-sm font-semibold text-text-primary font-mono">
-          {investigation.model_id}
-        </h2>
-        <div className="flex items-center gap-1.5 mt-1">
-          {investigation.declared.pipeline_tag && (
-            <Chip>{investigation.declared.pipeline_tag}</Chip>
-          )}
-          {investigation.declared.library && (
-            <Chip>{investigation.declared.library}</Chip>
-          )}
-          {investigation.declared.declared_license && (
-            <Chip>{investigation.declared.declared_license}</Chip>
-          )}
-        </div>
+    <div className="h-full flex flex-col bg-bg-surface border-x border-border">
+      <div className="px-5 py-3 border-b border-border flex items-center gap-2.5">
+        <span className="font-mono text-[11px] font-semibold tracking-widest uppercase text-text-secondary">
+          Evidence
+        </span>
+        <span className="font-mono text-[10.5px] text-text-muted">
+          cross-referenced - {sourcesTotal} sources
+        </span>
       </div>
       <TabBar />
-      {activeTab === "declared" && <DeclaredTab />}
-      {activeTab === "config" && <ConfigTab />}
-      {activeTab === "community" && <CommunityTab />}
-      {activeTab === "sources" && <SourcesTab />}
+      <div className="flex-1 min-h-0 overflow-y-auto scroll">
+        <div className="px-5 py-1">
+          {activeTab === "declared" && <DeclaredTab />}
+          {activeTab === "config" && <ConfigTab />}
+          {activeTab === "community" && <CommunityTab />}
+          {activeTab === "sources" && <SourcesTab />}
+        </div>
+      </div>
     </div>
   );
 }

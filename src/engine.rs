@@ -65,7 +65,20 @@ async fn run_investigation(
     let mut inv = ModelInvestigation::new(model_id);
 
     // Phase 1: fetch HF metadata (other sources depend on its results).
+    // If the model doesn't exist on HF, bail early rather than producing
+    // a misleading investigation full of "none declared" placeholders.
     let hf = sources::hf_metadata::fetch(client, base_url, model_id).await;
+    if hf.evidence.is_none()
+        && let crate::SourceStatus::Failed { reason } = &hf.record.status
+    {
+        return if reason.contains("not found") {
+            Err(InvestigationError::ModelNotFound(model_id.to_string()))
+        } else {
+            Err(InvestigationError::Parse(format!(
+                "failed to fetch metadata for {model_id}: {reason}"
+            )))
+        };
+    }
     inv.sources.push(hf.record);
     let (base_model, relation) = if let Some(Evidence::HfMetadata(e)) = hf.evidence {
         let bm = e.declared.declared_base_model.clone();

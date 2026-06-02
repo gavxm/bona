@@ -11,7 +11,7 @@ export function StatusDot({ status }: { status: SourceStatus }) {
 
   return (
     <span
-      className={clsx("inline-block w-2 h-2 rounded-full", color)}
+      className={clsx("inline-block w-2.5 h-2.5 rounded-full", color)}
       title={
         status.status === "ok"
           ? `${status.fetched_ms}ms`

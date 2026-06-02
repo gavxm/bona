@@ -75,8 +75,8 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn health() -> StatusCode {
-    StatusCode::OK
+async fn health() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "status": "ok", "version": env!("CARGO_PKG_VERSION") }))
 }
 
 async fn investigate(

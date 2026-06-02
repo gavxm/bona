@@ -1,11 +1,10 @@
 import { useInvestigation } from "../../context/useInvestigation";
-import { StatusDot } from "../shared/StatusDot";
 
-const SOURCE_LABELS: Record<string, string> = {
-  hf_metadata: "HF metadata",
-  model_tree: "model tree",
-  model_config: "model config",
-  community_signals: "community",
+const SOURCE_INFO: Record<string, { name: string; meta: string }> = {
+  hf_metadata: { name: "Hub model metadata", meta: "API card, license, tags, files" },
+  model_tree: { name: "Model tree", meta: "lineage chain, siblings" },
+  model_config: { name: "config.json", meta: "architecture, parameters, quantization" },
+  community_signals: { name: "Community & discussions", meta: "account age, engagement, discussions" },
 };
 
 export function SourcesTab() {
@@ -14,24 +13,31 @@ export function SourcesTab() {
 
   return (
     <div className="py-2">
-      {investigation.sources.map((rec) => (
-        <div
-          key={rec.source}
-          className="flex items-center gap-3 px-4 py-1.5"
-        >
-          <StatusDot status={rec.status} />
-          <span className="text-text-secondary text-xs w-32">
-            {SOURCE_LABELS[rec.source] ?? rec.source}
-          </span>
-          <span className="text-xs font-mono text-text-muted">
-            {rec.status.status === "ok"
-              ? `${rec.status.fetched_ms}ms`
-              : rec.status.status === "failed"
-                ? rec.status.reason
-                : "not implemented"}
-          </span>
-        </div>
-      ))}
+      {investigation.sources.map((rec) => {
+        const info = SOURCE_INFO[rec.source] ?? { name: rec.source, meta: "" };
+        const isOk = rec.status.status === "ok";
+        const statusText = rec.status.status === "ok"
+          ? `fetched ${rec.status.fetched_ms}ms`
+          : rec.status.status === "failed"
+            ? rec.status.reason
+            : "not implemented";
+
+        return (
+          <div
+            key={rec.source}
+            className="flex items-center gap-3 py-3 border-t border-border first:border-t-0"
+          >
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOk ? "bg-status-ok" : "bg-severity-medium"}`} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-medium text-text-primary">{info.name}</div>
+              <div className="font-mono text-[10.5px] text-text-muted mt-0.5">{info.meta}</div>
+            </div>
+            <span className={`font-mono text-[10.5px] shrink-0 ${isOk ? "text-status-ok" : "text-severity-medium"}`}>
+              {statusText}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

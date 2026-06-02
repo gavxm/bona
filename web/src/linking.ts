@@ -1,9 +1,23 @@
 export type CenterTab = "declared" | "config" | "community" | "sources";
 
+export type GraphNodeRef = "subject" | "parent" | { fromFinding: true };
+
 export interface FindingLink {
-  graphNodes: ("parent" | "subject")[];
+  graphNodes: GraphNodeRef[];
   centerTab: CenterTab;
   centerFields: string[];
+}
+
+/** Extract a model ID from a finding's evidence URL. */
+export function extractModelIdFromFinding(evidenceUrl: string | null): string | null {
+  if (!evidenceUrl) return null;
+  const prefix = "https://huggingface.co/";
+  if (!evidenceUrl.startsWith(prefix)) return null;
+  const rest = evidenceUrl.slice(prefix.length);
+  // Strip any trailing path segments (ex. /blob/main/config.json)
+  const parts = rest.split("/");
+  if (parts.length >= 2) return `${parts[0]}/${parts[1]}`;
+  return null;
 }
 
 export const FINDING_LINKS: Record<string, FindingLink> = {
@@ -61,5 +75,35 @@ export const FINDING_LINKS: Record<string, FindingLink> = {
     graphNodes: ["parent", "subject"],
     centerTab: "declared",
     centerFields: ["declared_license"],
+  },
+  transitive_license_violation: {
+    graphNodes: ["subject", { fromFinding: true }],
+    centerTab: "declared",
+    centerFields: ["declared_license"],
+  },
+  low_engagement: {
+    graphNodes: [],
+    centerTab: "declared",
+    centerFields: ["downloads", "likes"],
+  },
+  recently_modified: {
+    graphNodes: [],
+    centerTab: "declared",
+    centerFields: ["created_at", "last_modified"],
+  },
+  undeclared_quantization: {
+    graphNodes: [],
+    centerTab: "config",
+    centerFields: ["quant_method"],
+  },
+  no_weight_files: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["files"],
+  },
+  suspicious_files: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["files"],
   },
 };

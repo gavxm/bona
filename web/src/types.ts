@@ -1,3 +1,5 @@
+export const SCHEMA_VERSION = 3;
+
 export type Severity = "info" | "low" | "medium" | "high";
 
 export type EvidenceSource =
