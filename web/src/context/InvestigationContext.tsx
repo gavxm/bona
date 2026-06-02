@@ -213,9 +213,20 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
       const apiBase = "https://api.yurai.sh";
       let resp: Response | null = null;
 
-      resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch(() => null);
-      const isJson = resp?.headers.get("content-type")?.includes("application/json");
-      if (!resp || !resp.ok || !isJson) resp = null;
+      resp = await fetch(`${apiBase}/api/investigate/${modelId}`).catch((err) => {
+        console.warn("[yurai] API fetch failed:", err.message);
+        return null;
+      });
+      if (resp && resp.ok) {
+        const ct = resp.headers.get("content-type") ?? "";
+        if (!ct.includes("json")) {
+          console.warn("[yurai] API returned non-JSON content-type:", ct);
+          resp = null;
+        }
+      } else {
+        if (resp) console.warn("[yurai] API returned status:", resp.status);
+        resp = null;
+      }
 
       if (!resp) {
         const filename = modelId.replace("/", "--");
