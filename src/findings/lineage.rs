@@ -69,6 +69,47 @@ pub fn check(inv: &mut ModelInvestigation) {
 
     let parent_exists = lineage.parent_exists();
 
+    // Tombstone / inaccessible parent: declared parent is gone or locked down.
+    let parent_node = &lineage.chain[0];
+    if parent_exists == Some(false) {
+        inv.findings.push(Finding {
+            id: "tombstone_parent".into(),
+            title: "Parent model not found".into(),
+            severity: Severity::Medium,
+            detail: format!(
+                "Declared base model '{}' does not exist on HuggingFace. \
+                 It may have been deleted, made private, or the declaration is incorrect.",
+                parent_id,
+            ),
+            reason: "A missing parent model means license inheritance, architecture \
+                     lineage, and provenance claims cannot be verified."
+                .into(),
+            declared_value: Some(parent_id.to_string()),
+            actual_value: Some("not found (404)".into()),
+            evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
+        });
+    } else if let Some(err) = &parent_node.error {
+        if err.contains("access denied") {
+            inv.findings.push(Finding {
+                id: "inaccessible_parent".into(),
+                title: "Parent model is access-restricted".into(),
+                severity: Severity::Medium,
+                detail: format!(
+                    "Declared base model '{}' exists but returned {}. \
+                     License and lineage claims cannot be verified without access.",
+                    parent_id, err,
+                ),
+                reason: "An inaccessible parent means provenance claims are \
+                         unverifiable. The child may have stripped access controls \
+                         that the parent enforces."
+                    .into(),
+                declared_value: Some(parent_id.to_string()),
+                actual_value: Some(err.clone()),
+                evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
+            });
+        }
+    }
+
     let model_type = match inv.config.as_ref().and_then(|c| c.model_type.as_deref()) {
         Some(mt) => mt,
         None => return, // No config data - can't cross-reference.
@@ -153,6 +194,36 @@ mod tests {
         let mut inv = make_inv("some/unknown-model", "llama");
         check(&mut inv);
         assert!(inv.findings.is_empty());
+    }
+
+    #[test]
+    fn tombstone_parent_produces_medium() {
+        let mut inv = make_inv("deleted/model", "llama");
+        // Mark parent as not existing.
+        inv.lineage.as_mut().unwrap().chain[0].exists = false;
+        check(&mut inv);
+        let finding = inv.findings.iter().find(|f| f.id == "tombstone_parent");
+        assert!(finding.is_some());
+        assert_eq!(finding.unwrap().severity, Severity::Medium);
+    }
+
+    #[test]
+    fn inaccessible_parent_produces_medium() {
+        let mut inv = make_inv("private/model", "llama");
+        // Parent exists but access denied.
+        inv.lineage.as_mut().unwrap().chain[0].error =
+            Some("access denied (401 Unauthorized)".into());
+        check(&mut inv);
+        let finding = inv.findings.iter().find(|f| f.id == "inaccessible_parent");
+        assert!(finding.is_some());
+        assert_eq!(finding.unwrap().severity, Severity::Medium);
+    }
+
+    #[test]
+    fn existing_parent_no_tombstone() {
+        let mut inv = make_inv("meta-llama/Llama-3.1-8B", "llama");
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "tombstone_parent"));
     }
 
     fn make_inv(parent_id: &str, model_type: &str) -> ModelInvestigation {
