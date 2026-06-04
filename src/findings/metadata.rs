@@ -230,7 +230,11 @@ fn check_files(inv: &mut ModelInvestigation) {
         .collect();
 
     if !unsafe_weights.is_empty() {
-        let has_safetensors = inv.declared.files.iter().any(|f| f.ends_with(".safetensors"));
+        let has_safetensors = inv
+            .declared
+            .files
+            .iter()
+            .any(|f| f.ends_with(".safetensors"));
         let (severity, detail) = if has_safetensors {
             (
                 Severity::Low,
@@ -410,10 +414,7 @@ mod tests {
     #[test]
     fn unsafe_weight_with_safetensors_is_low() {
         let mut inv = make_inv(4096, 32, 32000, None);
-        inv.declared.files = vec![
-            "model.safetensors".into(),
-            "pytorch_model.bin".into(),
-        ];
+        inv.declared.files = vec!["model.safetensors".into(), "pytorch_model.bin".into()];
         check(&mut inv);
         let finding = inv.findings.iter().find(|f| f.id == "unsafe_weight_format");
         assert!(finding.is_some());
@@ -434,7 +435,11 @@ mod tests {
         let mut inv = make_inv(4096, 32, 32000, None);
         inv.declared.tags = vec!["transformers".into(), "llama".into(), "7b".into()];
         check(&mut inv);
-        assert!(!inv.findings.iter().any(|f| f.id == "parameter_count_mismatch"));
+        assert!(
+            !inv.findings
+                .iter()
+                .any(|f| f.id == "parameter_count_mismatch")
+        );
     }
 
     #[test]
@@ -443,7 +448,11 @@ mod tests {
         let mut inv = make_inv(4096, 32, 32000, None);
         inv.declared.tags = vec!["transformers".into(), "llama".into(), "70b".into()];
         check(&mut inv);
-        assert!(inv.findings.iter().any(|f| f.id == "parameter_count_mismatch"));
+        assert!(
+            inv.findings
+                .iter()
+                .any(|f| f.id == "parameter_count_mismatch")
+        );
     }
 
     #[test]
@@ -460,10 +469,7 @@ mod tests {
             extract_param_count_from_tags(&["transformers".into(), "13B".into()]),
             Some(13_000_000_000)
         );
-        assert_eq!(
-            extract_param_count_from_tags(&["llama".into()]),
-            None
-        );
+        assert_eq!(extract_param_count_from_tags(&["llama".into()]), None);
     }
 
     fn make_inv(

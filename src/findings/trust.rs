@@ -234,7 +234,11 @@ mod tests {
         let mut inv = make_inv(Some(&old), Some(1), Some(10));
         check(&mut inv);
         assert!(inv.findings.iter().any(|f| f.id == "single_model_author"));
-        let finding = inv.findings.iter().find(|f| f.id == "single_model_author").unwrap();
+        let finding = inv
+            .findings
+            .iter()
+            .find(|f| f.id == "single_model_author")
+            .unwrap();
         assert_eq!(finding.severity, Severity::Info);
     }
 
