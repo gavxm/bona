@@ -24,13 +24,32 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 
     if d.declared_base_model.is_none() && inv.config.is_some() {
+        // Quantized models without a base model are a stronger gap - they are
+        // always derivatives, so missing lineage is more concerning.
+        let is_quantized = inv
+            .config
+            .as_ref()
+            .and_then(|c| c.quant_method.as_ref())
+            .is_some();
+        let (severity, detail) = if is_quantized {
+            (
+                Severity::Medium,
+                "Model has quantization config but does not declare a base model. \
+                 Quantized models are always derivatives — missing lineage prevents \
+                 license and provenance verification.",
+            )
+        } else {
+            (
+                Severity::Low,
+                "Model has weights but does not declare a base model. \
+                 Lineage cannot be verified.",
+            )
+        };
         inv.findings.push(Finding {
             id: "missing_base_model".into(),
             title: "No base model declared".into(),
-            severity: Severity::Low,
-            detail: "Model has weights but does not declare a base model. \
-                     Lineage cannot be verified."
-                .into(),
+            severity,
+            detail: detail.into(),
             reason: "Without a declared parent, license inheritance cannot be checked.".into(),
             declared_value: None,
             actual_value: Some("(no base_model field)".into()),
@@ -60,6 +79,19 @@ mod tests {
         check(&mut inv);
         assert_eq!(inv.findings.len(), 1);
         assert_eq!(inv.findings[0].id, "missing_base_model");
+    }
+
+    #[test]
+    fn missing_base_model_quantized_produces_medium() {
+        let mut inv = make_inv(Some("mit"), None);
+        inv.config = Some(ModelConfigEvidence {
+            quant_method: Some("gptq".into()),
+            ..Default::default()
+        });
+        check(&mut inv);
+        assert_eq!(inv.findings.len(), 1);
+        assert_eq!(inv.findings[0].id, "missing_base_model");
+        assert_eq!(inv.findings[0].severity, Severity::Medium);
     }
 
     #[test]

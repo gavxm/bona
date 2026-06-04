@@ -64,6 +64,13 @@ export function DeclaredTab() {
       <FieldRow label="gated" field="gated" value={d.gated ?? null} flag={flags.get("gated")} />
       <FieldRow label="created" field="created_at" value={d.created_at ? formatDate(d.created_at) : null} flag={flags.get("created_at")} />
       <FieldRow label="last modified" field="last_modified" value={d.last_modified ? formatDate(d.last_modified) : null} flag={flags.get("last_modified")} />
+      <FieldRow label="language" field="language" value={d.language && d.language.length > 0 ? d.language.join(", ") : null} />
+      <FieldRow
+        label="datasets"
+        field="datasets"
+        value={d.datasets && d.datasets.length > 0 ? d.datasets.join(", ") : null}
+        flag={flags.get("datasets")}
+      />
 
       {/* Files list */}
       {d.files && d.files.length > 0 && (

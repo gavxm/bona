@@ -1,6 +1,7 @@
 //! Cross-referenced finding checks. Each module implements one category of
 //! provenance finding, run sequentially against gathered evidence.
 
+mod datasets;
 mod doc_gap;
 mod gated;
 mod license;
@@ -18,4 +19,5 @@ pub fn compute(inv: &mut ModelInvestigation) {
     doc_gap::check(inv);
     trust::check(inv);
     metadata::check(inv);
+    datasets::check(inv);
 }
