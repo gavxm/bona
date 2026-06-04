@@ -173,12 +173,11 @@ fn extract_param_count_from_tags(tags: &[String]) -> Option<u64> {
     for tag in tags {
         let lower = tag.to_lowercase();
         // Match patterns like "7b", "13b", "1.5b", "70b", "0.5b"
-        if let Some(num_str) = lower.strip_suffix('b') {
-            if let Ok(n) = num_str.parse::<f64>() {
-                if (0.1..=1000.0).contains(&n) {
-                    return Some((n * 1e9) as u64);
-                }
-            }
+        if let Some(num_str) = lower.strip_suffix('b')
+            && let Ok(n) = num_str.parse::<f64>()
+            && (0.1..=1000.0).contains(&n)
+        {
+            return Some((n * 1e9) as u64);
         }
     }
     None

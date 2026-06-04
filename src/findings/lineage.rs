@@ -88,26 +88,26 @@ pub fn check(inv: &mut ModelInvestigation) {
             actual_value: Some("not found (404)".into()),
             evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
         });
-    } else if let Some(err) = &parent_node.error {
-        if err.contains("access denied") {
-            inv.findings.push(Finding {
-                id: "inaccessible_parent".into(),
-                title: "Parent model is access-restricted".into(),
-                severity: Severity::Medium,
-                detail: format!(
-                    "Declared base model '{}' exists but returned {}. \
-                     License and lineage claims cannot be verified without access.",
-                    parent_id, err,
-                ),
-                reason: "An inaccessible parent means provenance claims are \
-                         unverifiable. The child may have stripped access controls \
-                         that the parent enforces."
-                    .into(),
-                declared_value: Some(parent_id.to_string()),
-                actual_value: Some(err.clone()),
-                evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
-            });
-        }
+    } else if let Some(err) = &parent_node.error
+        && err.contains("access denied")
+    {
+        inv.findings.push(Finding {
+            id: "inaccessible_parent".into(),
+            title: "Parent model is access-restricted".into(),
+            severity: Severity::Medium,
+            detail: format!(
+                "Declared base model '{}' exists but returned {}. \
+                 License and lineage claims cannot be verified without access.",
+                parent_id, err,
+            ),
+            reason: "An inaccessible parent means provenance claims are \
+                     unverifiable. The child may have stripped access controls \
+                     that the parent enforces."
+                .into(),
+            declared_value: Some(parent_id.to_string()),
+            actual_value: Some(err.clone()),
+            evidence_url: Some(format!("https://huggingface.co/{parent_id}")),
+        });
     }
 
     let model_type = match inv.config.as_ref().and_then(|c| c.model_type.as_deref()) {
