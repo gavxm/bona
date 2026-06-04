@@ -1,5 +1,6 @@
 import { useInvestigation } from "../../context/useInvestigation";
-import { FieldRow, useFieldFlags } from "./FieldRow";
+import { FieldRow } from "./FieldRow";
+import { useFieldFlags } from "./useFieldFlags";
 
 /** Compute a relative label anchored to `referenceIso` (the investigation
  *  timestamp) so the display stays stable for cached investigations. */

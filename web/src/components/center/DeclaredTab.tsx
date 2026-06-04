@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useInvestigation } from "../../context/useInvestigation";
-import { FieldRow, useFieldFlags } from "./FieldRow";
+import { FieldRow } from "./FieldRow";
+import { useFieldFlags } from "./useFieldFlags";
 
 function formatNumber(n: number): string {
   return n.toLocaleString();
@@ -33,10 +34,10 @@ function dangerTag(filename: string): string | null {
 export function DeclaredTab() {
   const { investigation, highlightedFields } = useInvestigation();
   const [showAllTags, setShowAllTags] = useState(false);
+  const flags = useFieldFlags(investigation?.findings ?? []);
   if (!investigation) return null;
 
   const d = investigation.declared;
-  const flags = useFieldFlags(investigation.findings);
   const visibleTags = showAllTags ? d.tags : d.tags.slice(0, MAX_VISIBLE_TAGS);
   const hiddenCount = d.tags.length - MAX_VISIBLE_TAGS;
   const filesHighlighted = highlightedFields.includes("files");

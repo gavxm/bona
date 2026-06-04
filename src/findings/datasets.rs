@@ -41,9 +41,7 @@ const RESTRICTED_DATASETS: &[(&str, &str, &str)] = &[
 /// Check training dataset declarations.
 pub fn check(inv: &mut ModelInvestigation) {
     // Missing datasets: fine-tuned model with no training data declared.
-    if inv.declared.datasets.is_empty()
-        && inv.declared.declared_base_model.is_some()
-    {
+    if inv.declared.datasets.is_empty() && inv.declared.declared_base_model.is_some() {
         inv.findings.push(Finding {
             id: "missing_datasets".into(),
             title: "No training datasets declared".into(),
@@ -152,7 +150,11 @@ mod tests {
     fn case_insensitive_match() {
         let mut inv = make_inv(vec!["user/SHAREGPT-cleaned".into()]);
         check(&mut inv);
-        assert!(inv.findings.iter().any(|f| f.id == "restricted_training_data"));
+        assert!(
+            inv.findings
+                .iter()
+                .any(|f| f.id == "restricted_training_data")
+        );
     }
 
     fn make_inv(datasets: Vec<String>) -> ModelInvestigation {

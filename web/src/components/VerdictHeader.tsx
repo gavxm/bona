@@ -145,7 +145,7 @@ export function VerdictHeader() {
           <div className="px-5 py-4 border-l border-border flex items-center">
             <button
               onClick={() => loadInvestigation(investigation.model_id)}
-              className="h-[30px] px-3 rounded-lg border border-border-strong bg-bg-raised text-text-secondary text-[11px] font-medium cursor-pointer hover:text-text-primary hover:bg-bg-open transition-colors"
+              className="h-7.5 px-3 rounded-lg border border-border-strong bg-bg-raised text-text-secondary text-[11px] font-medium cursor-pointer hover:text-text-primary hover:bg-bg-open transition-colors"
             >
               re-scan
             </button>
