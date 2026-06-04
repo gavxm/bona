@@ -106,4 +106,29 @@ export const FINDING_LINKS: Record<string, FindingLink> = {
     centerTab: "declared",
     centerFields: ["files"],
   },
+  unsafe_weight_format: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["files"],
+  },
+  tombstone_parent: {
+    graphNodes: ["parent", "subject"],
+    centerTab: "declared",
+    centerFields: ["declared_base_model"],
+  },
+  inaccessible_parent: {
+    graphNodes: ["parent", "subject"],
+    centerTab: "declared",
+    centerFields: ["declared_base_model"],
+  },
+  parameter_count_mismatch: {
+    graphNodes: [],
+    centerTab: "config",
+    centerFields: ["hidden_size", "num_hidden_layers", "vocab_size"],
+  },
+  single_model_author: {
+    graphNodes: [],
+    centerTab: "community",
+    centerFields: ["author_model_count"],
+  },
 };

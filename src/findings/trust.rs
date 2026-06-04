@@ -37,6 +37,29 @@ pub fn check(inv: &mut ModelInvestigation) {
         }
     }
 
+    // Single model author: uploader has only published this one model.
+    if let Some(count) = community.author_model_count
+        && count <= 1
+    {
+        let author = community.author.as_deref().unwrap_or("unknown");
+        inv.findings.push(Finding {
+            id: "single_model_author".into(),
+            title: "Author has no other models".into(),
+            severity: Severity::Info,
+            detail: format!(
+                "Account '{author}' has {count} model(s) on HuggingFace. \
+                 Single-model accounts offer less track record to assess trust.",
+            ),
+            reason: "Authors with a publishing history are easier to vet. \
+                     A single-model account is not inherently suspicious but \
+                     provides less context for trust decisions."
+                .into(),
+            declared_value: None,
+            actual_value: Some(format!("{count} model(s)")),
+            evidence_url: Some(format!("https://huggingface.co/{author}")),
+        });
+    }
+
     // Low community engagement (no discussions at all).
     if community.discussion_count == Some(0) {
         inv.findings.push(Finding {
@@ -203,6 +226,28 @@ mod tests {
         inv.declared.last_modified = Some(modified);
         check(&mut inv);
         assert!(!inv.findings.iter().any(|f| f.id == "recently_modified"));
+    }
+
+    #[test]
+    fn single_model_author_produces_info() {
+        let old = (Utc::now() - chrono::Duration::days(365)).to_rfc3339();
+        let mut inv = make_inv(Some(&old), Some(1), Some(10));
+        check(&mut inv);
+        assert!(inv.findings.iter().any(|f| f.id == "single_model_author"));
+        let finding = inv
+            .findings
+            .iter()
+            .find(|f| f.id == "single_model_author")
+            .unwrap();
+        assert_eq!(finding.severity, Severity::Info);
+    }
+
+    #[test]
+    fn multi_model_author_no_finding() {
+        let old = (Utc::now() - chrono::Duration::days(365)).to_rfc3339();
+        let mut inv = make_inv(Some(&old), Some(10), Some(10));
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "single_model_author"));
     }
 
     fn make_inv(

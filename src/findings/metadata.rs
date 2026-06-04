@@ -79,6 +79,47 @@ pub fn check(inv: &mut ModelInvestigation) {
         }
     }
 
+    // Parameter count tag vs config estimate.
+    // Tags like "7b", "13b", "70b" claim a parameter count that can be
+    // cross-referenced against the architecture dimensions in config.json.
+    if let (Some(hidden), Some(layers), Some(vocab)) = (
+        config.hidden_size,
+        config.num_hidden_layers,
+        config.vocab_size,
+    ) {
+        let estimated_params = 2 * vocab * hidden + layers * 12 * hidden * hidden;
+        let tag_params = extract_param_count_from_tags(&inv.declared.tags);
+        if let Some(claimed) = tag_params {
+            // Allow 50% tolerance — the formula is rough.
+            let lower = claimed / 2;
+            let upper = claimed * 2;
+            if estimated_params < lower || estimated_params > upper {
+                let claimed_b = claimed as f64 / 1e9;
+                let est_b = estimated_params as f64 / 1e9;
+                inv.findings.push(Finding {
+                    id: "parameter_count_mismatch".into(),
+                    title: "Parameter count contradicts tags".into(),
+                    severity: Severity::Low,
+                    detail: format!(
+                        "Tags claim ~{claimed_b:.1}B parameters but config.json dimensions \
+                         (hidden={hidden}, layers={layers}, vocab={vocab}) suggest \
+                         ~{est_b:.1}B parameters.",
+                    ),
+                    reason: "A significant mismatch between tagged parameter count and \
+                             architecture dimensions may indicate mislabeled tags or a \
+                             modified architecture."
+                        .into(),
+                    declared_value: Some(format!("~{claimed_b:.1}B (from tags)")),
+                    actual_value: Some(format!("~{est_b:.1}B (estimated from config)")),
+                    evidence_url: Some(format!(
+                        "https://huggingface.co/{}/blob/main/config.json",
+                        inv.model_id,
+                    )),
+                });
+            }
+        }
+    }
+
     // Safetensors total size vs common param count thresholds.
     // Rough heuristic: 2 bytes per param (fp16). If the weight size is
     // wildly different from what the architecture suggests, flag it.
@@ -123,6 +164,25 @@ pub fn check(inv: &mut ModelInvestigation) {
     }
 }
 
+/// Unsafe/pickle-capable weight extensions. These formats can execute
+/// arbitrary code when loaded via `torch.load` or similar.
+const UNSAFE_WEIGHT_EXTENSIONS: &[&str] = &[".bin", ".pkl", ".pth", ".pt", ".ckpt"];
+
+/// Extract a parameter count from tags like "7b", "13b", "70b", "1.5b", "0.5b".
+fn extract_param_count_from_tags(tags: &[String]) -> Option<u64> {
+    for tag in tags {
+        let lower = tag.to_lowercase();
+        // Match patterns like "7b", "13b", "1.5b", "70b", "0.5b"
+        if let Some(num_str) = lower.strip_suffix('b')
+            && let Ok(n) = num_str.parse::<f64>()
+            && (0.1..=1000.0).contains(&n)
+        {
+            return Some((n * 1e9) as u64);
+        }
+    }
+    None
+}
+
 /// File extensions that should not appear in a model repo.
 /// Excludes .dll since ONNX/CUDA runtime DLLs are common in deployment repos.
 const SUSPICIOUS_EXTENSIONS: &[&str] = &[".exe", ".bat", ".cmd", ".msi", ".scr"];
@@ -155,6 +215,54 @@ fn check_files(inv: &mut ModelInvestigation) {
                 .into(),
             declared_value: None,
             actual_value: Some(format!("{} files, no weights", inv.declared.files.len())),
+            evidence_url: Some(format!("https://huggingface.co/{}/tree/main", inv.model_id)),
+        });
+    }
+
+    // Unsafe weight format: pickle-capable files that can execute arbitrary code.
+    let unsafe_weights: Vec<&str> = inv
+        .declared
+        .files
+        .iter()
+        .filter(|f| UNSAFE_WEIGHT_EXTENSIONS.iter().any(|ext| f.ends_with(ext)))
+        .map(|s| s.as_str())
+        .collect();
+
+    if !unsafe_weights.is_empty() {
+        let has_safetensors = inv
+            .declared
+            .files
+            .iter()
+            .any(|f| f.ends_with(".safetensors"));
+        let (severity, detail) = if has_safetensors {
+            (
+                Severity::Low,
+                format!(
+                    "Model repo contains unsafe weight files ({}) alongside safetensors. \
+                     The pickle-based files are redundant and carry code execution risk.",
+                    unsafe_weights.join(", "),
+                ),
+            )
+        } else {
+            (
+                Severity::Medium,
+                format!(
+                    "Model repo uses pickle-based weight files ({}) with no safetensors \
+                     alternative. These formats can execute arbitrary code when loaded.",
+                    unsafe_weights.join(", "),
+                ),
+            )
+        };
+        inv.findings.push(Finding {
+            id: "unsafe_weight_format".into(),
+            title: "Unsafe weight format".into(),
+            severity,
+            detail,
+            reason: "Pickle-based formats (.bin, .pkl, .pth, .pt, .ckpt) can execute \
+                     arbitrary code via torch.load. Prefer safetensors for safe loading."
+                .into(),
+            declared_value: None,
+            actual_value: Some(unsafe_weights.join(", ")),
             evidence_url: Some(format!("https://huggingface.co/{}/tree/main", inv.model_id)),
         });
     }
@@ -290,6 +398,77 @@ mod tests {
         check(&mut inv);
         assert!(!inv.findings.iter().any(|f| f.id == "no_weight_files"));
         assert!(!inv.findings.iter().any(|f| f.id == "suspicious_files"));
+    }
+
+    #[test]
+    fn unsafe_weight_without_safetensors_is_medium() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec!["model.bin".into(), "config.json".into()];
+        check(&mut inv);
+        let finding = inv.findings.iter().find(|f| f.id == "unsafe_weight_format");
+        assert!(finding.is_some());
+        assert_eq!(finding.unwrap().severity, Severity::Medium);
+    }
+
+    #[test]
+    fn unsafe_weight_with_safetensors_is_low() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec!["model.safetensors".into(), "pytorch_model.bin".into()];
+        check(&mut inv);
+        let finding = inv.findings.iter().find(|f| f.id == "unsafe_weight_format");
+        assert!(finding.is_some());
+        assert_eq!(finding.unwrap().severity, Severity::Low);
+    }
+
+    #[test]
+    fn safetensors_only_no_unsafe_finding() {
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.files = vec!["model.safetensors".into()];
+        check(&mut inv);
+        assert!(!inv.findings.iter().any(|f| f.id == "unsafe_weight_format"));
+    }
+
+    #[test]
+    fn parameter_count_mismatch_detected() {
+        // Tags say 7b but config suggests ~6.7B — within tolerance, no finding.
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.tags = vec!["transformers".into(), "llama".into(), "7b".into()];
+        check(&mut inv);
+        assert!(
+            !inv.findings
+                .iter()
+                .any(|f| f.id == "parameter_count_mismatch")
+        );
+    }
+
+    #[test]
+    fn parameter_count_mismatch_large_discrepancy() {
+        // Tags say 70b but config dimensions suggest ~6.7B.
+        let mut inv = make_inv(4096, 32, 32000, None);
+        inv.declared.tags = vec!["transformers".into(), "llama".into(), "70b".into()];
+        check(&mut inv);
+        assert!(
+            inv.findings
+                .iter()
+                .any(|f| f.id == "parameter_count_mismatch")
+        );
+    }
+
+    #[test]
+    fn extract_param_count_parses_tags() {
+        assert_eq!(
+            extract_param_count_from_tags(&["7b".into()]),
+            Some(7_000_000_000)
+        );
+        assert_eq!(
+            extract_param_count_from_tags(&["1.5b".into()]),
+            Some(1_500_000_000)
+        );
+        assert_eq!(
+            extract_param_count_from_tags(&["transformers".into(), "13B".into()]),
+            Some(13_000_000_000)
+        );
+        assert_eq!(extract_param_count_from_tags(&["llama".into()]), None);
     }
 
     fn make_inv(
