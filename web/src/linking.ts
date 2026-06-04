@@ -131,4 +131,14 @@ export const FINDING_LINKS: Record<string, FindingLink> = {
     centerTab: "community",
     centerFields: ["author_model_count"],
   },
+  restricted_training_data: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["datasets"],
+  },
+  missing_datasets: {
+    graphNodes: ["subject"],
+    centerTab: "declared",
+    centerFields: ["datasets"],
+  },
 };

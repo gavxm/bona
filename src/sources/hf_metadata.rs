@@ -51,6 +51,22 @@ struct HfSibling {
     rfilename: String,
 }
 
+/// Extract a cardData field that can be a string or array of strings.
+fn extract_string_or_list(card_data: &Option<serde_json::Value>, key: &str) -> Vec<String> {
+    let cd = match card_data.as_ref() {
+        Some(cd) => cd,
+        None => return Vec::new(),
+    };
+    match cd.get(key) {
+        Some(serde_json::Value::String(s)) => vec![s.clone()],
+        Some(serde_json::Value::Array(arr)) => arr
+            .iter()
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
 pub async fn fetch(
     client: &reqwest_middleware::ClientWithMiddleware,
     base_url: &str,
@@ -99,6 +115,8 @@ pub async fn fetch(
             let base_models = extract_base_models(&info.card_data);
             let declared_base_model = base_models.first().map(|p| p.model_id.clone());
             let base_model_relation = base_models.first().map(|p| p.relation);
+            let datasets = extract_string_or_list(&info.card_data, "datasets");
+            let language = extract_string_or_list(&info.card_data, "language");
             let declared = DeclaredFacts {
                 model_id: model_id.to_string(),
                 declared_license: card_license.or(info.license),
@@ -115,6 +133,8 @@ pub async fn fetch(
                 private: info.private,
                 files,
                 created_at: info.created_at,
+                datasets,
+                language,
             };
             let ms = start.elapsed().as_millis() as u64;
             FetchResult::ok(

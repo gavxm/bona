@@ -1,27 +1,5 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { useInvestigation } from "../../context/useInvestigation";
-import { FINDING_LINKS } from "../../linking";
-import type { Finding } from "../../types";
-
-/** Compute which fields have findings pointing at them and the highest severity. */
-export function useFieldFlags(findings: Finding[]): Map<string, "high" | "medium"> {
-  return useMemo(() => {
-    const flags = new Map<string, "high" | "medium">();
-    for (const f of findings) {
-      const link = FINDING_LINKS[f.id];
-      if (!link) continue;
-      const sev = f.severity === "high" ? "high" : f.severity === "medium" ? "medium" : null;
-      if (!sev) continue;
-      for (const field of link.centerFields) {
-        const existing = flags.get(field);
-        if (!existing || (sev === "high" && existing === "medium")) {
-          flags.set(field, sev);
-        }
-      }
-    }
-    return flags;
-  }, [findings]);
-}
 
 interface FieldRowProps {
   label: string;
@@ -63,7 +41,7 @@ export function FieldRow({ label, field, value, mono = false, flag }: FieldRowPr
     <div
       ref={ref}
       className={[
-        "grid items-baseline gap-x-4 px-2.5 py-2.5 rounded-lg mx-[-10px] transition-all duration-300 border-t border-border first:border-t-0",
+        "grid items-baseline gap-x-4 px-2.5 py-2.5 rounded-lg -mx-2.5 transition-all duration-300 border-t border-border first:border-t-0",
         isHighlighted ? "bg-accent-bg shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "",
       ].join(" ")}
       style={{ gridTemplateColumns: "160px minmax(0, 1fr)" }}

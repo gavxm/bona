@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useInvestigation } from "../../context/useInvestigation";
-import { FieldRow, useFieldFlags } from "./FieldRow";
+import { FieldRow } from "./FieldRow";
+import { useFieldFlags } from "./useFieldFlags";
 import { FINDING_LINKS } from "../../linking";
 
 function formatBytes(bytes: number): string {

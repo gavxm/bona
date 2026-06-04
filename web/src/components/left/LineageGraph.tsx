@@ -49,7 +49,7 @@ function Gutter({ topEdge, botEdge, dotColor, glow, dim, glowEdges }: GutterProp
       {botEdge && <div className={`${segClass(botEdge)} top-1/2 bottom-0`} />}
       <span
         className={[
-          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[11px] h-[11px] rounded-full z-[2] border-[2.5px] border-bg-surface transition-opacity duration-200",
+          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.75 h-2.75 rounded-full z-2 border-[2.5px] border-bg-surface transition-opacity duration-200",
           dim && !glow ? "opacity-30" : "",
         ].join(" ")}
         style={{ background: dotColor }}
@@ -349,11 +349,11 @@ export function LineageGraph() {
       {/* Legend */}
       <div className="flex gap-3.5 flex-wrap px-5 py-2.5 border-t border-border font-mono text-[9.5px] text-text-muted">
         <span className="flex items-center gap-1.5">
-          <i className="inline-block w-[7px] h-[7px] rounded-full" style={{ background: "var(--color-accent)" }} />
+          <i className="inline-block w-1.75 h-1.75 rounded-full" style={{ background: "var(--color-accent)" }} />
           this model
         </span>
         <span className="flex items-center gap-1.5">
-          <i className="inline-block w-[7px] h-[7px] rounded-full" style={{ background: "var(--color-severity-medium)" }} />
+          <i className="inline-block w-1.75 h-1.75 rounded-full" style={{ background: "var(--color-severity-medium)" }} />
           gated origin
         </span>
       </div>

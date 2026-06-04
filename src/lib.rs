@@ -146,6 +146,12 @@ pub struct DeclaredFacts {
     /// ISO 8601 timestamp of model creation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    /// Dataset IDs from cardData.datasets (ex. "tatsu-lab/alpaca").
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub datasets: Vec<String>,
+    /// Language codes from cardData.language (ex. "en", "zh").
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub language: Vec<String>,
 }
 
 pub use sources::RelationKind;

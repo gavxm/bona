@@ -52,6 +52,8 @@ export interface DeclaredFacts {
   private?: boolean | null;
   files?: string[];
   created_at?: string | null;
+  datasets?: string[];
+  language?: string[];
 }
 
 export interface LineageNode {

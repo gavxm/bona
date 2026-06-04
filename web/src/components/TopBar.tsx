@@ -62,7 +62,7 @@ export function TopBar() {
         {investigation && (
           <button
             onClick={() => setShowExport(true)}
-            className="h-[34px] px-3.5 rounded-lg border border-border-strong bg-bg-raised text-text-secondary text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer hover:text-text-primary hover:bg-bg-open transition-colors shrink-0"
+            className="h-8.5 px-3.5 rounded-lg border border-border-strong bg-bg-raised text-text-secondary text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer hover:text-text-primary hover:bg-bg-open transition-colors shrink-0"
           >
             <IconDownload size={13} />
             <span className="hidden sm:inline">export report</span>
